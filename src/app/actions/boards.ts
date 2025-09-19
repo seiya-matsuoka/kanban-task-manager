@@ -1,6 +1,15 @@
 "use server";
 
-export async function createBoard(_input: { title: string }) {
-  // TODO: Prisma 経由で作成
-  throw new Error("Not implemented");
+import { z } from "zod";
+
+const CreateBoard = z.object({
+  title: z.string().min(1),
+});
+
+export type CreateBoardInput = z.infer<typeof CreateBoard>;
+
+export async function createBoard(input: CreateBoardInput) {
+  const data = CreateBoard.parse(input);
+  // TODO: Prisma で DB へ
+  return { ok: true as const, id: crypto.randomUUID(), ...data };
 }
