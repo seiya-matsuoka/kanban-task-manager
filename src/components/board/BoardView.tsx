@@ -8,6 +8,8 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
+  closestCorners,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -87,7 +89,11 @@ export default function BoardView({
       | "card"
       | "list"
       | undefined;
-    const overType = ev.over?.data.current?.type as "card" | "list" | undefined;
+    const overType = ev.over?.data.current?.type as
+      | "card"
+      | "list"
+      | "list-drop"
+      | undefined;
     if (activeType !== "card") return;
 
     const activeId = String(ev.active.id);
@@ -114,6 +120,7 @@ export default function BoardView({
       </h2>
       <DndContext
         sensors={sensors}
+        collisionDetection={closestCorners}
         onDragEnd={onDragEnd}
         onDragOver={onDragOver}
       >
@@ -166,15 +173,13 @@ function SortableList({
     opacity: isDragging ? 0.7 : 1,
   };
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className="w-64 min-w-[260px] shrink-0"
-    >
+    <div ref={setNodeRef} style={style} className="w-64 min-w-[260px] shrink-0">
       <div className="rounded-2xl border bg-card">
-        <div className="flex cursor-grab select-none items-center justify-between gap-2 border-b px-4 py-3 font-medium active:cursor-grabbing">
+        <div
+          className="flex cursor-grab select-none items-center justify-between gap-2 border-b px-4 py-3 font-medium active:cursor-grabbing"
+          {...attributes}
+          {...listeners}
+        >
           <span>
             {list.title}{" "}
             <span className="text-xs text-muted-foreground">
@@ -187,8 +192,29 @@ function SortableList({
             initialTitle={list.title}
           />
         </div>
-        <div className="space-y-3 p-3">{children}</div>
+        <DroppableListBody listId={list.id}>{children}</DroppableListBody>
       </div>
+    </div>
+  );
+}
+
+function DroppableListBody({
+  listId,
+  children,
+}: {
+  listId: ID;
+  children: React.ReactNode;
+}) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `drop-${listId}`,
+    data: { type: "list-drop", listId },
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`space-y-3 rounded-b-2xl p-3 ${isOver ? "outline outline-2 outline-primary/50" : ""}`}
+    >
+      {children}
     </div>
   );
 }
