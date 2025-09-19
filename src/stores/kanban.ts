@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { boardRepo, listRepo, cardRepo } from "@/lib/repo";
-import type { Board, Card, ID, List, Position } from "@/types/domain";
+import type { Board, Card, ID, List } from "@/types/domain";
+import { GAP, computeNewPosition, normalizeSequential } from "@/lib/positions";
 
 type KanbanState = {
   boards: Board[];
@@ -36,33 +37,11 @@ type KanbanState = {
   addBoard(input: { title: string }): ID;
   addList(input: { boardId: ID; title: string }): ID;
   addCard(input: { boardId: ID; listId: ID; title: string }): ID;
+  updateList(input: { listId: ID; title: string }): void;
+  updateCard(input: { cardId: ID; title: string }): void;
+  removeList(input: { boardId: ID; listId: ID }): void;
+  removeCard(input: { listId: ID; cardId: ID }): void;
 };
-
-const GAP: Position = 1024;
-
-function computeNewPosition(prev?: Position, next?: Position): Position {
-  if (prev == null && next == null) return GAP;
-  if (prev == null) return Math.floor((0 + next!) / 2) || Math.floor(next! / 2);
-  if (next == null) return prev + GAP;
-  const mid = Math.floor((prev + next) / 2);
-  if (mid === prev || mid === next) {
-    return prev + 1;
-  }
-  return mid;
-}
-
-function normalizePositions(cards: Card[]): Card[] {
-  // 1024 間隔で振り直し
-  return cards
-    .sort((a, b) => a.position - b.position)
-    .map((c, i) => ({ ...c, position: (i + 1) * GAP }));
-}
-
-function normalizeLists(lists: List[]): List[] {
-  return lists
-    .sort((a, b) => a.position - b.position)
-    .map((l, i) => ({ ...l, position: (i + 1) * GAP }));
-}
 
 export const useKanban = create<KanbanState>((set, get) => ({
   boards: [],
@@ -122,7 +101,7 @@ export const useKanban = create<KanbanState>((set, get) => ({
     const needNormalize = cur.some(
       (c, i) => i > 0 && c.position <= cur[i - 1].position,
     );
-    const final = needNormalize ? normalizePositions(cur) : cur;
+    const final = needNormalize ? normalizeSequential(cur) : cur;
 
     set({
       cardsByList: { ...get().cardsByList, [listId]: final },
@@ -156,8 +135,8 @@ export const useKanban = create<KanbanState>((set, get) => ({
     const needNormalizeFrom = from.some(
       (c, i) => i > 0 && c.position <= from[i - 1].position,
     );
-    const finalTo = needNormalizeTo ? normalizePositions(to) : to;
-    const finalFrom = needNormalizeFrom ? normalizePositions(from) : from;
+    const finalTo = needNormalizeTo ? normalizeSequential(to) : to;
+    const finalFrom = needNormalizeFrom ? normalizeSequential(from) : from;
 
     set({
       cardsByList: {
@@ -181,7 +160,7 @@ export const useKanban = create<KanbanState>((set, get) => ({
     const next = lists[toIdx + 1]?.position;
     moved.position = computeNewPosition(prev, next);
 
-    const final = normalizeLists(lists);
+    const final = normalizeSequential(lists);
     set({
       listsByBoard: { ...get().listsByBoard, [boardId]: final },
     });
@@ -234,4 +213,58 @@ export const useKanban = create<KanbanState>((set, get) => ({
     set({ cardsByList: { ...get().cardsByList, [listId]: next } });
     return id;
   },
+
+  updateList({ listId, title }) {
+    const { listsByBoard } = get();
+    const next = Object.fromEntries(
+      Object.entries(listsByBoard).map(([bid, lists]) => [
+        bid,
+        lists.map((l) => (l.id === listId ? { ...l, title } : l)),
+      ]),
+    );
+    set({ listsByBoard: next });
+  },
+
+  updateCard({ cardId, title }) {
+    const { cardsByList } = get();
+    const next = Object.fromEntries(
+      Object.entries(cardsByList).map(([lid, cards]) => [
+        lid,
+        cards.map((c) => (c.id === cardId ? { ...c, title } : c)),
+      ]),
+    );
+    set({ cardsByList: next });
+  },
+
+  removeList({ boardId, listId }) {
+    const lists = [...(get().listsByBoard[boardId] ?? [])].filter(
+      (l) => l.id !== listId,
+    );
+    const cardsByList = { ...get().cardsByList };
+    delete cardsByList[listId];
+    set({
+      listsByBoard: {
+        ...get().listsByBoard,
+        [boardId]: normalizeSequential(lists),
+      },
+      cardsByList,
+    });
+  },
+
+  removeCard({ listId, cardId }) {
+    const cards = (get().cardsByList[listId] ?? []).filter(
+      (c) => c.id !== cardId,
+    );
+    set({
+      cardsByList: {
+        ...get().cardsByList,
+        [listId]: normalizeSequential(cards),
+      },
+    });
+  },
 }));
+
+export function selectListsByBoard(boardId: ID) {
+  const state = useKanban.getState();
+  return state.listsByBoard[boardId] ?? [];
+}
