@@ -23,6 +23,19 @@ type KanbanState = {
     activeCardId: ID;
     overCardId: ID;
   }): void;
+
+  moveCardToAnotherList(params: {
+    fromListId: ID;
+    toListId: ID;
+    cardId: ID;
+    overCardId?: ID;
+  }): void;
+
+  reorderLists(params: { boardId: ID; activeListId: ID; overListId: ID }): void;
+
+  addBoard(input: { title: string }): ID;
+  addList(input: { boardId: ID; title: string }): ID;
+  addCard(input: { boardId: ID; listId: ID; title: string }): ID;
 };
 
 const GAP: Position = 1024;
@@ -43,6 +56,12 @@ function normalizePositions(cards: Card[]): Card[] {
   return cards
     .sort((a, b) => a.position - b.position)
     .map((c, i) => ({ ...c, position: (i + 1) * GAP }));
+}
+
+function normalizeLists(lists: List[]): List[] {
+  return lists
+    .sort((a, b) => a.position - b.position)
+    .map((l, i) => ({ ...l, position: (i + 1) * GAP }));
 }
 
 export const useKanban = create<KanbanState>((set, get) => ({
@@ -108,5 +127,111 @@ export const useKanban = create<KanbanState>((set, get) => ({
     set({
       cardsByList: { ...get().cardsByList, [listId]: final },
     });
+  },
+
+  moveCardToAnotherList({ fromListId, toListId, cardId, overCardId }) {
+    const { cardsByList } = get();
+    const from = [...(cardsByList[fromListId] ?? [])];
+    const to = [...(cardsByList[toListId] ?? [])];
+    const idx = from.findIndex((c) => c.id === cardId);
+    if (idx < 0) return;
+
+    const [moved] = from.splice(idx, 1);
+    moved.listId = toListId;
+
+    let insertIdx = to.length;
+    if (overCardId) {
+      const overIdx = to.findIndex((c) => c.id === overCardId);
+      if (overIdx >= 0) insertIdx = overIdx;
+    }
+    to.splice(insertIdx, 0, moved);
+
+    const prev = to[insertIdx - 1]?.position;
+    const next = to[insertIdx + 1]?.position;
+    moved.position = computeNewPosition(prev, next);
+
+    const needNormalizeTo = to.some(
+      (c, i) => i > 0 && c.position <= to[i - 1].position,
+    );
+    const needNormalizeFrom = from.some(
+      (c, i) => i > 0 && c.position <= from[i - 1].position,
+    );
+    const finalTo = needNormalizeTo ? normalizePositions(to) : to;
+    const finalFrom = needNormalizeFrom ? normalizePositions(from) : from;
+
+    set({
+      cardsByList: {
+        ...cardsByList,
+        [fromListId]: finalFrom,
+        [toListId]: finalTo,
+      },
+    });
+  },
+
+  reorderLists({ boardId, activeListId, overListId }) {
+    const lists = [...(get().listsByBoard[boardId] ?? [])];
+    const fromIdx = lists.findIndex((l) => l.id === activeListId);
+    const toIdx = lists.findIndex((l) => l.id === overListId);
+    if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return;
+
+    const [moved] = lists.splice(fromIdx, 1);
+    lists.splice(toIdx, 0, moved);
+
+    const prev = lists[toIdx - 1]?.position;
+    const next = lists[toIdx + 1]?.position;
+    moved.position = computeNewPosition(prev, next);
+
+    const final = normalizeLists(lists);
+    set({
+      listsByBoard: { ...get().listsByBoard, [boardId]: final },
+    });
+  },
+
+  addBoard({ title }) {
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const newBoard: Board = { id, title, createdAt: now, updatedAt: now };
+    set((s) => ({ boards: [...s.boards, newBoard] }));
+    return id;
+  },
+
+  addList({ boardId, title }) {
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const lists = [...(get().listsByBoard[boardId] ?? [])];
+    const pos = (lists.at(-1)?.position ?? 0) + GAP;
+    const newList: List = {
+      id,
+      boardId,
+      title,
+      position: pos,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const next = [...lists, newList];
+    set({
+      listsByBoard: { ...get().listsByBoard, [boardId]: next },
+      cardsByList: { ...get().cardsByList, [id]: [] },
+    });
+    return id;
+  },
+
+  addCard({ boardId, listId, title }) {
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const cards = [...(get().cardsByList[listId] ?? [])];
+    const pos = (cards.at(-1)?.position ?? 0) + GAP;
+    const newCard: Card = {
+      id,
+      boardId,
+      listId,
+      title,
+      position: pos,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const next = [...cards, newCard];
+    set({ cardsByList: { ...get().cardsByList, [listId]: next } });
+    return id;
   },
 }));
