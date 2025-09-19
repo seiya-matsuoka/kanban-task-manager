@@ -19,6 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useKanban } from "@/stores/kanban";
 import type { ID, List, Card } from "@/types/domain";
 import QuickCreate from "@/components/board/QuickCreate";
+import { EditList, EditCard } from "@/components/board/EditControls";
 
 type Props = {
   boardId: ID;
@@ -33,14 +34,12 @@ export default function BoardView({
   lists,
   cardsByList,
 }: Props) {
-  const {
-    cardsByList: storeCards,
-    listsByBoard,
-    initBoardData,
-    reorderCardInList,
-    moveCardToAnotherList,
-    reorderLists,
-  } = useKanban();
+  const storeCards = useKanban((s) => s.cardsByList);
+  const listsByBoard = useKanban((s) => s.listsByBoard);
+  const initBoardData = useKanban((s) => s.initBoardData);
+  const reorderCardInList = useKanban((s) => s.reorderCardInList);
+  const moveCardToAnotherList = useKanban((s) => s.moveCardToAnotherList);
+  const reorderLists = useKanban((s) => s.reorderLists);
 
   useEffect(() => {
     if (!listsByBoard[boardId]) {
@@ -77,6 +76,7 @@ export default function BoardView({
         });
       }
     }
+
     if (activeType === "list" && overType === "list") {
       reorderLists({ boardId, activeListId: activeId, overListId: overId });
     }
@@ -94,7 +94,7 @@ export default function BoardView({
     const fromListId = String(ev.active.data.current?.listId);
 
     if (!ev.over) return;
-    const toListId = String(ev.over.data.current?.listId ?? ev.over.id); // list上 or card上
+    const toListId = String(ev.over.data.current?.listId ?? ev.over.id);
     if (!toListId || toListId === fromListId) return;
 
     const overCardId = overType === "card" ? String(ev.over.id) : undefined;
@@ -174,11 +174,18 @@ function SortableList({
       className="w-64 min-w-[260px] shrink-0"
     >
       <div className="rounded-2xl border bg-card">
-        <div className="cursor-grab select-none border-b px-4 py-3 font-medium active:cursor-grabbing">
-          {list.title}{" "}
-          <span className="text-xs text-muted-foreground">
-            pos:{list.position}
+        <div className="flex cursor-grab select-none items-center justify-between gap-2 border-b px-4 py-3 font-medium active:cursor-grabbing">
+          <span>
+            {list.title}{" "}
+            <span className="text-xs text-muted-foreground">
+              pos:{list.position}
+            </span>
           </span>
+          <EditList
+            listId={list.id}
+            boardId={list.boardId}
+            initialTitle={list.title}
+          />
         </div>
         <div className="space-y-3 p-3">{children}</div>
       </div>
@@ -215,6 +222,9 @@ function SortableCard({ card, listId }: { card: Card; listId: ID }) {
     >
       <div className="font-medium">{card.title}</div>
       <div className="text-xs text-muted-foreground">pos: {card.position}</div>
+      <div className="pt-2">
+        <EditCard cardId={card.id} listId={listId} initialTitle={card.title} />
+      </div>
     </div>
   );
 }
