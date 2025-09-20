@@ -1,26 +1,34 @@
-"use server";
+"use client";
 
-import { createBoard } from "@/app/actions/boards";
-import { createList } from "@/app/actions/lists";
-import { createCard } from "@/app/actions/cards";
+import { createList as saCreateList } from "@/app/actions/lists";
+import { createCard as saCreateCard } from "@/app/actions/cards";
 
-export async function createBoardServer(input: { title: string }) {
-  return await createBoard(input);
+function unwrap<T>(
+  res: { ok: true; data: T } | { ok: false; error: unknown },
+): T {
+  if (!("ok" in res) || !res.ok) {
+    throw new Error(
+      "Server Action failed: " + JSON.stringify((res as any).error ?? res),
+    );
+  }
+  return (res as any).data as T;
 }
 
-export async function createListServer(input: {
+export async function createList(input: {
   boardId: string;
   title: string;
   position?: number;
 }) {
-  return await createList(input);
+  const res = await saCreateList(input);
+  return unwrap(res);
 }
 
-export async function createCardServer(input: {
+export async function createCard(input: {
   boardId: string;
   listId: string;
   title: string;
   position?: number;
 }) {
-  return await createCard(input);
+  const res = await saCreateCard(input);
+  return unwrap(res);
 }

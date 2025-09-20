@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,31 +13,43 @@ import {
 import { Input } from "@/components/ui/input";
 import { useKanban } from "@/stores/kanban";
 import type { ID } from "@/types/domain";
+import { createList, createCard } from "@/lib/actions-bridge";
 
 export default function QuickCreate({ boardId }: { boardId: ID }) {
-  const { addBoard, addList, addCard, listsByBoard } = useKanban();
-  const [open, setOpen] = useState<null | "board" | "list" | "card">(null);
+  const { listsByBoard } = useKanban();
+  const [open, setOpen] = useState<null | "list" | "card">(null);
   const [title, setTitle] = useState("");
+  const [busy, setBusy] = useState(false);
   const lists = listsByBoard[boardId] ?? [];
+  const router = useRouter();
 
-  function onCreate() {
-    if (!title.trim()) return;
-    if (open === "board") addBoard({ title });
-    if (open === "list") addList({ boardId, title });
-    if (open === "card") {
-      const listId = lists[0]?.id;
-      if (listId) addCard({ boardId, listId, title });
+  async function onCreate() {
+    const t = title.trim();
+    if (!t || busy) return;
+    setBusy(true);
+    try {
+      if (open === "list") {
+        await createList({ boardId: String(boardId), title: t });
+      }
+      if (open === "card") {
+        const listId = lists[0]?.id;
+        if (listId) {
+          await createCard({
+            boardId: String(boardId),
+            listId: String(listId),
+            title: t,
+          });
+        }
+      }
+      setTitle("");
+      setOpen(null);
+      router.refresh();
+    } finally {
+      setBusy(false);
     }
-    setTitle("");
-    setOpen(null);
   }
 
-  const heading =
-    open === "board"
-      ? "Board を追加"
-      : open === "list"
-        ? "List を追加"
-        : "Card を追加";
+  const heading = open === "list" ? "List を追加" : "Card を追加";
 
   return (
     <div className="flex gap-2">
@@ -63,7 +76,9 @@ export default function QuickCreate({ boardId }: { boardId: ID }) {
             <Button variant="outline" onClick={() => setOpen(null)}>
               キャンセル
             </Button>
-            <Button onClick={onCreate}>作成</Button>
+            <Button onClick={onCreate} disabled={busy || !title.trim()}>
+              作成
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
