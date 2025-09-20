@@ -57,11 +57,47 @@ export async function reorderList(
   const updated = await prisma.list.update({
     where: { id: parsed.data.listId },
     data: { position: parsed.data.position },
+    select: { id: true, boardId: true, position: true },
   });
-  const b = await prisma.list.findUnique({
+  revalidatePath(`/boards/${updated.boardId}`);
+  return { ok: true, data: updated };
+}
+
+const updateListSchema = z.object({
+  listId: z.string().min(1),
+  title: z.string().min(1).max(100),
+});
+
+export async function updateList(
+  listId: string,
+  title: string,
+): Promise<Result<any>> {
+  const parsed = updateListSchema.safeParse({ listId, title });
+  if (!parsed.success) return { ok: false, error: parsed.error.format() };
+
+  const updated = await prisma.list.update({
+    where: { id: parsed.data.listId },
+    data: { title: parsed.data.title },
+    select: { id: true, boardId: true, title: true },
+  });
+  revalidatePath(`/boards/${updated.boardId}`);
+  return { ok: true, data: updated };
+}
+
+const deleteListSchema = z.object({
+  listId: z.string().min(1),
+});
+
+export async function deleteList(listId: string): Promise<Result<any>> {
+  const parsed = deleteListSchema.safeParse({ listId });
+  if (!parsed.success) return { ok: false, error: parsed.error.format() };
+
+  // boardId を先に取得（revalidate 用）
+  const l = await prisma.list.findUnique({
     where: { id: parsed.data.listId },
     select: { boardId: true },
   });
-  if (b?.boardId) revalidatePath(`/boards/${b.boardId}`);
-  return { ok: true, data: updated };
+  await prisma.list.delete({ where: { id: parsed.data.listId } });
+  if (l?.boardId) revalidatePath(`/boards/${l.boardId}`);
+  return { ok: true, data: { id: parsed.data.listId } };
 }

@@ -12,8 +12,6 @@ const createCardSchema = z.object({
   listId: z.string().min(1),
   title: z.string().min(1).max(200),
   position: z.number().int().optional(),
-  description: z.string().max(4000).optional(),
-  dueDate: z.coerce.date().optional(),
 });
 
 export async function createCard(
@@ -45,6 +43,13 @@ export async function createCard(
       title: parsed.data.title,
       position: pos,
     },
+    select: {
+      id: true,
+      listId: true,
+      title: true,
+      position: true,
+      updatedAt: true,
+    },
   });
   revalidatePath(`/boards/${parsed.data.boardId}`);
   return { ok: true, data: card };
@@ -67,11 +72,69 @@ export async function reorderCard(
   const updated = await prisma.card.update({
     where: { id: parsed.data.cardId },
     data: { listId: parsed.data.toListId, position: parsed.data.position },
+    select: { id: true, listId: true },
   });
+
   const l = await prisma.list.findUnique({
-    where: { id: parsed.data.toListId },
+    where: { id: updated.listId },
     select: { boardId: true },
   });
   if (l?.boardId) revalidatePath(`/boards/${l.boardId}`);
   return { ok: true, data: updated };
+}
+
+const updateCardSchema = z.object({
+  cardId: z.string().min(1),
+  title: z.string().min(1).max(200),
+  description: z.string().max(4000).optional(),
+});
+
+export async function updateCard(
+  cardId: string,
+  title: string,
+  description?: string,
+): Promise<Result<any>> {
+  const parsed = updateCardSchema.safeParse({ cardId, title, description });
+  if (!parsed.success) return { ok: false, error: parsed.error.format() };
+
+  const updated = await prisma.card.update({
+    where: { id: parsed.data.cardId },
+    data: { title: parsed.data.title, description: parsed.data.description },
+    select: { id: true, listId: true, title: true },
+  });
+  const l = await prisma.card.findUnique({
+    where: { id: updated.id },
+    select: { listId: true },
+  });
+  const b = l
+    ? await prisma.list.findUnique({
+        where: { id: l.listId },
+        select: { boardId: true },
+      })
+    : null;
+  if (b?.boardId) revalidatePath(`/boards/${b.boardId}`);
+  return { ok: true, data: updated };
+}
+
+const deleteCardSchema = z.object({
+  cardId: z.string().min(1),
+});
+
+export async function deleteCard(cardId: string): Promise<Result<any>> {
+  const parsed = deleteCardSchema.safeParse({ cardId });
+  if (!parsed.success) return { ok: false, error: parsed.error.format() };
+
+  const c = await prisma.card.findUnique({
+    where: { id: parsed.data.cardId },
+    select: { listId: true },
+  });
+  await prisma.card.delete({ where: { id: parsed.data.cardId } });
+  if (c?.listId) {
+    const l = await prisma.list.findUnique({
+      where: { id: c.listId },
+      select: { boardId: true },
+    });
+    if (l?.boardId) revalidatePath(`/boards/${l.boardId}`);
+  }
+  return { ok: true, data: { id: parsed.data.cardId } };
 }
