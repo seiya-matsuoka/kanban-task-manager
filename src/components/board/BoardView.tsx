@@ -6,10 +6,13 @@ import {
   DndContext,
   DragEndEvent,
   DragOverEvent,
+  DragStartEvent,
+  DragOverlay,
   PointerSensor,
   useSensor,
   useSensors,
-  closestCorners,
+  useDroppable,
+  rectIntersection,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -57,6 +60,46 @@ function midPosition(prev?: number, next?: number) {
   return m === p || m === n ? n + GAP : m;
 }
 
+// リスト末尾だけを拾う専用ゾーン
+function BottomDropZone({ listId }: { listId: ID }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `drop-bottom-${listId}`,
+    data: { type: "list-bottom", listId },
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`h-6 ${isOver ? "rounded-md outline outline-2 outline-primary/50" : ""}`}
+    />
+  );
+}
+
+// 従来のボディ（list-drop）
+function DroppableListBody({
+  listId,
+  children,
+}: {
+  listId: ID;
+  children: React.ReactNode;
+}) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `drop-${listId}`,
+    data: { type: "list-drop", listId },
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`space-y-3 rounded-b-2xl p-3 ${
+        isOver ? "outline outline-2 outline-primary/50" : ""
+      }`}
+    >
+      {children}
+      {/* 末尾ゾーン */}
+      <BottomDropZone listId={listId} />
+    </div>
+  );
+}
+
 // DnD用ソートアイテム
 function SortableList({
   list,
@@ -75,9 +118,10 @@ function SortableList({
   } = useSortable({ id: list.id, data: { type: "list" } });
 
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    transform: isDragging ? undefined : CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.7 : 1,
+    opacity: isDragging ? 0 : 1,
+    pointerEvents: isDragging ? "none" : "auto",
   };
 
   return (
@@ -100,7 +144,7 @@ function SortableList({
             initialTitle={list.title}
           />
         </div>
-        <div className="space-y-3 rounded-b-2xl p-3">{children}</div>
+        <DroppableListBody listId={list.id}>{children}</DroppableListBody>
       </div>
     </div>
   );
@@ -117,9 +161,10 @@ function SortableCard({ card, listId }: { card: Card; listId: ID }) {
   } = useSortable({ id: card.id, data: { type: "card", listId } });
 
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    transform: isDragging ? undefined : CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.6 : 1,
+    opacity: isDragging ? 0 : 1,
+    pointerEvents: isDragging ? "none" : "auto",
   };
 
   return (
@@ -195,6 +240,8 @@ export default function BoardView({
   const reorderCardInList = useKanban((s) => s.reorderCardInList);
   const moveCardToAnotherList = useKanban((s) => s.moveCardToAnotherList);
   const reorderLists = useKanban((s) => s.reorderLists);
+  const [activeCard, setActiveCard] = useState<Card | null>(null);
+  const [activeList, setActiveList] = useState<List | null>(null);
 
   // 初回は SSR スナップショットを描画、マウント後に DnD 表示へ切替
   const [hydrated, setHydrated] = useState(false);
@@ -219,14 +266,40 @@ export default function BoardView({
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
+  function onDragStart(ev: DragStartEvent) {
+    const type = ev.active.data.current?.type as "card" | "list" | undefined;
+    if (type === "card") {
+      const listId = String(ev.active.data.current?.listId);
+      const cardId = String(ev.active.id);
+      const card =
+        effectiveCards(listId).find((c) => String(c.id) === cardId) ?? null;
+      setActiveCard(card);
+      setActiveList(null);
+    } else if (type === "list") {
+      const listId = String(ev.active.id);
+      const list = effectiveLists.find((l) => String(l.id) === listId) ?? null;
+      setActiveList(list);
+      setActiveCard(null);
+    }
+  }
+
   function onDragEnd(ev: DragEndEvent) {
+    setActiveCard(null);
+    setActiveList(null);
+
     const activeId = String(ev.active.id);
-    const overId = ev.over ? String(ev.over.id) : null;
+    const over = ev.over;
+    const overId = over ? String(over.id) : null;
     const activeType = ev.active.data.current?.type as
       | "card"
       | "list"
       | undefined;
-    const overType = ev.over?.data.current?.type as "card" | "list" | undefined;
+    const overType = over?.data.current?.type as
+      | "card"
+      | "list"
+      | "list-drop"
+      | "list-bottom"
+      | undefined;
 
     if (!overId || !activeType) return;
 
@@ -251,12 +324,65 @@ export default function BoardView({
     // CARD 並び替え/リスト跨ぎ
     if (activeType === "card") {
       const fromListId = String(ev.active.data.current?.listId);
-      const toListId = String(ev.over?.data.current?.listId ?? ev.over?.id);
+      const toListId = over ? String(over.data.current?.listId ?? over.id) : "";
       if (!toListId) return;
 
+      // 末尾positionを常に安全に出すためのヘルパ
+      const tailPosition = (lid: ID) => {
+        const cs = effectiveCards(lid);
+        const last = cs.length ? Math.max(...cs.map((c) => c.position)) : 0;
+        const GAP = 1024;
+        return last + GAP;
+      };
+
+      // 同一リスト × 末尾ゾーン（list-drop / list-bottom）にドロップ → 末尾へ
+      if (
+        fromListId === toListId &&
+        (overType === "list-drop" || overType === "list-bottom")
+      ) {
+        const newPos = tailPosition(fromListId);
+        // 楽観更新なしで確定保存→refresh（チラつき/重複回避）
+        saReorderCard({
+          cardId: activeId,
+          toListId: fromListId,
+          position: newPos,
+        })
+          .then(() => router.refresh())
+          .catch((err) =>
+            console.error("reorderCard(in-list bottom) failed", {
+              cardId: activeId,
+              toListId: fromListId,
+              newPos,
+              err,
+            }),
+          );
+        return;
+      }
+
+      // 別リスト × 末尾ゾーン（list-drop / list-bottom）にドロップ → 末尾へ
+      if (
+        fromListId !== toListId &&
+        (overType === "list-drop" || overType === "list-bottom")
+      ) {
+        const newCardPos = tailPosition(toListId);
+        moveCardToAnotherList({ fromListId, toListId, cardId: activeId });
+        saReorderCard({ cardId: activeId, toListId, position: newCardPos })
+          .then(() => router.refresh())
+          .catch((err) =>
+            console.error("reorderCard(cross-list bottom) failed", {
+              cardId: activeId,
+              toListId,
+              newCardPos,
+              err,
+            }),
+          );
+        return;
+      }
+
+      // 同一リスト（カード上）
       if (fromListId === toListId && overType === "card") {
         const before = effectiveCards(fromListId).map((x) => ({ ...x }));
-        const after = arrayMoveById(before, activeId, overId);
+        const after = arrayMoveById(before, activeId, overId!);
         const j = after.findIndex((x) => String(x.id) === activeId);
         const prevC = j > 0 ? after[j - 1].position : undefined;
         const nextC = j < after.length - 1 ? after[j + 1].position : undefined;
@@ -265,7 +391,7 @@ export default function BoardView({
         reorderCardInList({
           listId: fromListId,
           activeCardId: activeId,
-          overCardId: overId,
+          overCardId: overId!,
         });
         saReorderCard({ cardId: activeId, toListId, position: newPos })
           .then(() => router.refresh())
@@ -280,6 +406,7 @@ export default function BoardView({
         return;
       }
 
+      // リスト跨ぎ（カード上）
       const beforeTo = effectiveCards(toListId).map((x) => ({ ...x }));
       const afterTo =
         overType === "card"
@@ -288,7 +415,7 @@ export default function BoardView({
                 ? beforeTo
                 : [...beforeTo, { id: activeId, position: 0 } as any],
               activeId,
-              overId,
+              overId!,
             )
           : [...beforeTo, { id: activeId, position: 0 } as any];
 
@@ -302,7 +429,7 @@ export default function BoardView({
         fromListId,
         toListId,
         cardId: activeId,
-        overCardId: overType === "card" ? overId : undefined,
+        overCardId: overType === "card" ? overId! : undefined,
       });
       saReorderCard({ cardId: activeId, toListId, position: newCardPos })
         .then(() => router.refresh())
@@ -317,33 +444,7 @@ export default function BoardView({
     }
   }
 
-  function onDragOver(ev: DragOverEvent) {
-    const activeType = ev.active.data.current?.type as
-      | "card"
-      | "list"
-      | undefined;
-    const overType = ev.over?.data.current?.type as
-      | "card"
-      | "list"
-      | "list-drop"
-      | undefined;
-    if (activeType !== "card") return;
-
-    const activeId = String(ev.active.id);
-    const fromListId = String(ev.active.data.current?.listId);
-
-    if (!ev.over) return;
-    const toListId = String(ev.over.data.current?.listId ?? ev.over.id);
-    if (!toListId || toListId === fromListId) return;
-
-    const overCardId = overType === "card" ? String(ev.over.id) : undefined;
-    moveCardToAnotherList({
-      fromListId,
-      toListId,
-      cardId: activeId,
-      overCardId,
-    });
-  }
+  function onDragOver(_ev: DragOverEvent) {}
 
   // SSR/初回は静的、マウント後にDnDへ切替
   if (!hydrated) {
@@ -375,7 +476,8 @@ export default function BoardView({
       </h2>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={rectIntersection}
+        onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onDragOver={onDragOver}
       >
@@ -398,6 +500,29 @@ export default function BoardView({
             ))}
           </div>
         </SortableContext>
+        {/* ドラッグ中の見た目だけを表示（状態は動かさない） */}
+        <DragOverlay>
+          {activeCard ? (
+            <div className="rounded-xl border bg-background p-3 text-sm shadow-lg">
+              <div className="font-medium">{activeCard.title}</div>
+              <div className="text-xs text-muted-foreground">
+                pos: {activeCard.position}
+              </div>
+            </div>
+          ) : activeList ? (
+            <div className="w-64 min-w-[260px] shrink-0 rounded-2xl border bg-card shadow-lg">
+              <div className="flex items-center justify-between gap-2 border-b px-4 py-3 font-medium">
+                <span>
+                  {activeList.title}{" "}
+                  <span className="text-xs text-muted-foreground">
+                    pos:{activeList.position}
+                  </span>
+                </span>
+              </div>
+              <div className="p-3 text-xs text-muted-foreground">移動中…</div>
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
     </div>
   );
