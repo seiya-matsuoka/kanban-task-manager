@@ -44,10 +44,9 @@ export default function BoardView({
   const reorderLists = useKanban((s) => s.reorderLists);
 
   useEffect(() => {
-    if (!listsByBoard[boardId]) {
-      initBoardData({ boardId, lists, cardsByList });
-    }
-  }, [boardId]); // eslint-disable-line react-hooks/exhaustive-deps
+    initBoardData({ boardId, lists, cardsByList });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boardId, lists, cardsByList]);
 
   const effectiveLists = listsByBoard[boardId] ?? lists;
   const effectiveCards = (lid: ID) => storeCards[lid] ?? cardsByList[lid] ?? [];
