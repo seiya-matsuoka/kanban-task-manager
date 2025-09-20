@@ -13,6 +13,8 @@ export default [
       "dist/**",
       "coverage/**",
       "components.json",
+      "**/generated/**",
+      "prisma/dev.db",
     ],
   },
 

@@ -61,3 +61,13 @@ test-results/
 *.tsbuildinfo
 
 # next-env.d.ts はコミット対象
+
+# Prisma / DB
+generated/
+generated/**
+/generated/prisma
+prisma/*.db
+prisma/*.sqlite
+prisma/*.db-journal
+prisma/*.sqlite-journal
+*.db
