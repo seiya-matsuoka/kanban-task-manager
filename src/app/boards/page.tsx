@@ -1,9 +1,16 @@
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { boardRepo } from "@/lib/repo";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
+
+type BoardListItem = { id: string; title: string; createdAt: Date };
 
 export default async function BoardsPage() {
-  const boards = await boardRepo.listBoards();
+  const boards: BoardListItem[] = await prisma.board.findMany({
+    orderBy: { createdAt: "desc" },
+    select: { id: true, title: true, createdAt: true },
+  });
 
   return (
     <div className="space-y-4">
