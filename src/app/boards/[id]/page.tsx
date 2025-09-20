@@ -34,9 +34,9 @@ type BoardDetail = {
 export default async function BoardPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = params;
+  const { id } = await params;
 
   const board: BoardDetail | null = await prisma.board.findUnique({
     where: { id },
