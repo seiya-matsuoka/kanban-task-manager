@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,6 +13,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { useKanban } from "@/stores/kanban";
 import type { ID } from "@/types/domain";
+import {
+  updateList as saUpdateList,
+  deleteList as saDeleteList,
+  updateCard as saUpdateCard,
+  deleteCard as saDeleteCard,
+} from "@/lib/actions-bridge";
 
 export function EditList({
   listId,
@@ -25,6 +32,8 @@ export function EditList({
   const { updateList, removeList } = useKanban();
   const [open, setOpen] = useState<null | "edit" | "delete">(null);
   const [title, setTitle] = useState(initialTitle);
+  const [busy, setBusy] = useState(false);
+  const router = useRouter();
 
   return (
     <div className="flex gap-2">
@@ -35,6 +44,7 @@ export function EditList({
         削除
       </Button>
 
+      {/* 編集ダイアログ */}
       <Dialog open={open === "edit"} onOpenChange={() => setOpen(null)}>
         <DialogContent>
           <DialogHeader>
@@ -43,16 +53,43 @@ export function EditList({
               新しいタイトルを入力して保存します。
             </DialogDescription>
           </DialogHeader>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            disabled={busy}
+          />
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setOpen(null)}>
+            <Button
+              variant="outline"
+              onClick={() => setOpen(null)}
+              disabled={busy}
+            >
               キャンセル
             </Button>
             <Button
-              onClick={() => {
-                if (title.trim()) updateList({ listId, title });
-                setOpen(null);
+              onClick={async () => {
+                const t = title.trim();
+                if (!t || busy) return;
+                setBusy(true);
+                // 楽観更新
+                updateList({ listId, title: t });
+                try {
+                  // DB 永続化
+                  await saUpdateList({ listId: String(listId), title: t });
+                } catch (err) {
+                  console.error("Failed to update list", {
+                    listId,
+                    title: t,
+                    err,
+                  });
+                } finally {
+                  setBusy(false);
+                  setOpen(null);
+                  router.refresh();
+                }
               }}
+              disabled={busy || !title.trim()}
             >
               保存
             </Button>
@@ -60,6 +97,7 @@ export function EditList({
         </DialogContent>
       </Dialog>
 
+      {/* 削除ダイアログ */}
       <Dialog open={open === "delete"} onOpenChange={() => setOpen(null)}>
         <DialogContent>
           <DialogHeader>
@@ -77,10 +115,23 @@ export function EditList({
             </Button>
             <Button
               variant="destructive"
-              onClick={() => {
+              onClick={async () => {
+                if (busy) return;
+                setBusy(true);
+                // 楽観更新
                 removeList({ boardId, listId });
-                setOpen(null);
+                try {
+                  // DB 永続化
+                  await saDeleteList({ listId: String(listId) });
+                } catch (err) {
+                  console.error("Failed to delete list", { listId, err });
+                } finally {
+                  setBusy(false);
+                  setOpen(null);
+                  router.refresh();
+                }
               }}
+              disabled={busy}
             >
               削除する
             </Button>
@@ -103,6 +154,8 @@ export function EditCard({
   const { updateCard, removeCard } = useKanban();
   const [open, setOpen] = useState<null | "edit" | "delete">(null);
   const [title, setTitle] = useState(initialTitle);
+  const [busy, setBusy] = useState(false);
+  const router = useRouter();
 
   return (
     <div className="flex gap-2">
@@ -113,6 +166,7 @@ export function EditCard({
         削除
       </Button>
 
+      {/* 編集ダイアログ */}
       <Dialog open={open === "edit"} onOpenChange={() => setOpen(null)}>
         <DialogContent>
           <DialogHeader>
@@ -121,16 +175,42 @@ export function EditCard({
               新しいタイトルを入力して保存します。
             </DialogDescription>
           </DialogHeader>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            disabled={busy}
+          />
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setOpen(null)}>
+            <Button
+              variant="outline"
+              onClick={() => setOpen(null)}
+              disabled={busy}
+            >
               キャンセル
             </Button>
             <Button
-              onClick={() => {
-                if (title.trim()) updateCard({ cardId, title });
-                setOpen(null);
+              onClick={async () => {
+                const t = title.trim();
+                if (!t || busy) return;
+                setBusy(true);
+                // 楽観更新
+                updateCard({ cardId, title: t });
+                try {
+                  // DB 永続化
+                  await saUpdateCard({ cardId: String(cardId), title: t });
+                } catch (err) {
+                  console.error("Failed to update card", {
+                    cardId,
+                    title: t,
+                    err,
+                  });
+                } finally {
+                  setBusy(false);
+                  setOpen(null);
+                  router.refresh();
+                }
               }}
+              disabled={busy || !title.trim()}
             >
               保存
             </Button>
@@ -138,6 +218,7 @@ export function EditCard({
         </DialogContent>
       </Dialog>
 
+      {/* 削除ダイアログ */}
       <Dialog open={open === "delete"} onOpenChange={() => setOpen(null)}>
         <DialogContent>
           <DialogHeader>
@@ -155,10 +236,23 @@ export function EditCard({
             </Button>
             <Button
               variant="destructive"
-              onClick={() => {
+              onClick={async () => {
+                if (busy) return;
+                setBusy(true);
+                // 楽観更新
                 removeCard({ listId, cardId });
-                setOpen(null);
+                try {
+                  // DB 永続化
+                  await saDeleteCard({ cardId: String(cardId) });
+                } catch (err) {
+                  console.error("Failed to delete card", { cardId, err });
+                } finally {
+                  setBusy(false);
+                  setOpen(null);
+                  router.refresh();
+                }
               }}
+              disabled={busy}
             >
               削除する
             </Button>
