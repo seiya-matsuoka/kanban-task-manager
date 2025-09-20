@@ -100,6 +100,19 @@ function DroppableListBody({
   );
 }
 
+// 共通のカードUI（通常表示とドラッグ中で共用）
+function CardView({ card, listId }: { card: Card; listId: ID }) {
+  return (
+    <div className="rounded-xl border bg-background p-3 text-sm">
+      <div className="font-medium">{card.title}</div>
+      <div className="text-xs text-muted-foreground">pos: {card.position}</div>
+      <div className="pt-2">
+        <EditCard cardId={card.id} listId={listId} initialTitle={card.title} />
+      </div>
+    </div>
+  );
+}
+
 // DnD用ソートアイテム
 function SortableList({
   list,
@@ -150,6 +163,7 @@ function SortableList({
   );
 }
 
+// DnD用ソートアイテム（カード）
 function SortableCard({ card, listId }: { card: Card; listId: ID }) {
   const {
     attributes,
@@ -173,13 +187,9 @@ function SortableCard({ card, listId }: { card: Card; listId: ID }) {
       style={style}
       {...attributes}
       {...listeners}
-      className="cursor-grab select-none rounded-xl border bg-background p-3 text-sm active:cursor-grabbing"
+      className="cursor-grab select-none active:cursor-grabbing"
     >
-      <div className="font-medium">{card.title}</div>
-      <div className="text-xs text-muted-foreground">pos: {card.position}</div>
-      <div className="pt-2">
-        <EditCard cardId={card.id} listId={listId} initialTitle={card.title} />
-      </div>
+      <CardView card={card} listId={listId} />
     </div>
   );
 }
@@ -215,15 +225,7 @@ function StaticList({
 }
 
 function StaticCard({ card, listId }: { card: Card; listId: ID }) {
-  return (
-    <div className="rounded-xl border bg-background p-3 text-sm">
-      <div className="font-medium">{card.title}</div>
-      <div className="text-xs text-muted-foreground">pos: {card.position}</div>
-      <div className="pt-2">
-        <EditCard cardId={card.id} listId={listId} initialTitle={card.title} />
-      </div>
-    </div>
-  );
+  return <CardView card={card} listId={listId} />;
 }
 
 export default function BoardView({
@@ -241,6 +243,7 @@ export default function BoardView({
   const moveCardToAnotherList = useKanban((s) => s.moveCardToAnotherList);
   const reorderLists = useKanban((s) => s.reorderLists);
   const [activeCard, setActiveCard] = useState<Card | null>(null);
+  const [activeCardListId, setActiveCardListId] = useState<ID | null>(null);
   const [activeList, setActiveList] = useState<List | null>(null);
 
   // 初回は SSR スナップショットを描画、マウント後に DnD 表示へ切替
@@ -273,18 +276,21 @@ export default function BoardView({
       const cardId = String(ev.active.id);
       const card =
         effectiveCards(listId).find((c) => String(c.id) === cardId) ?? null;
-      setActiveCard(card);
+      if (card) setActiveCard(card);
+      setActiveCardListId(listId as ID);
       setActiveList(null);
     } else if (type === "list") {
       const listId = String(ev.active.id);
       const list = effectiveLists.find((l) => String(l.id) === listId) ?? null;
       setActiveList(list);
       setActiveCard(null);
+      setActiveCardListId(null);
     }
   }
 
   function onDragEnd(ev: DragEndEvent) {
     setActiveCard(null);
+    setActiveCardListId(null);
     setActiveList(null);
 
     const activeId = String(ev.active.id);
@@ -341,7 +347,6 @@ export default function BoardView({
         (overType === "list-drop" || overType === "list-bottom")
       ) {
         const newPos = tailPosition(fromListId);
-        // 楽観更新なしで確定保存→refresh（チラつき/重複回避）
         saReorderCard({
           cardId: activeId,
           toListId: fromListId,
@@ -500,14 +505,12 @@ export default function BoardView({
             ))}
           </div>
         </SortableContext>
-        {/* ドラッグ中の見た目だけを表示（状態は動かさない） */}
+
+        {/* ドラッグ中の見た目だけを表示 */}
         <DragOverlay>
-          {activeCard ? (
-            <div className="rounded-xl border bg-background p-3 text-sm shadow-lg">
-              <div className="font-medium">{activeCard.title}</div>
-              <div className="text-xs text-muted-foreground">
-                pos: {activeCard.position}
-              </div>
+          {activeCard && activeCardListId ? (
+            <div className="pointer-events-none">
+              <CardView card={activeCard} listId={activeCardListId} />
             </div>
           ) : activeList ? (
             <div className="w-64 min-w-[260px] shrink-0 rounded-2xl border bg-card shadow-lg">
