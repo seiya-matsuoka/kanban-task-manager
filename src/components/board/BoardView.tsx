@@ -37,6 +37,23 @@ type Props = {
   cardsByList: Record<ID, Card[]>;
 };
 
+type OverInfo = {
+  listId: ID;
+  overType: "card" | "list-drop" | "list-bottom";
+  overCardId?: ID | null;
+} | null;
+
+function eqOverInfo(a: OverInfo, b: OverInfo) {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return (
+    String(a.listId) === String(b.listId) &&
+    a.overType === b.overType &&
+    (a.overCardId ? String(a.overCardId) : "") ===
+      (b.overCardId ? String(b.overCardId) : "")
+  );
+}
+
 // 並べ替えユーティリティ
 function arrayMoveById<T extends { id: string }>(
   arr: T[],
@@ -245,6 +262,7 @@ export default function BoardView({
   const [activeCard, setActiveCard] = useState<Card | null>(null);
   const [activeCardListId, setActiveCardListId] = useState<ID | null>(null);
   const [activeList, setActiveList] = useState<List | null>(null);
+  const [overInfo, setOverInfo] = useState<OverInfo>(null);
 
   // 初回は SSR スナップショットを描画、マウント後に DnD 表示へ切替
   const [hydrated, setHydrated] = useState(false);
@@ -270,6 +288,7 @@ export default function BoardView({
   );
 
   function onDragStart(ev: DragStartEvent) {
+    setOverInfo(null);
     const type = ev.active.data.current?.type as "card" | "list" | undefined;
     if (type === "card") {
       const listId = String(ev.active.data.current?.listId);
@@ -289,9 +308,16 @@ export default function BoardView({
   }
 
   function onDragEnd(ev: DragEndEvent) {
-    setActiveCard(null);
-    setActiveCardListId(null);
-    setActiveList(null);
+    const finish = () => {
+      if (typeof window !== "undefined") {
+        requestAnimationFrame(() => setOverInfo(null));
+      } else {
+        setOverInfo(null);
+      }
+      setActiveCard(null);
+      setActiveCardListId(null);
+      setActiveList(null);
+    };
 
     const activeId = String(ev.active.id);
     const over = ev.over;
@@ -307,7 +333,10 @@ export default function BoardView({
       | "list-bottom"
       | undefined;
 
-    if (!overId || !activeType) return;
+    if (!overId || !activeType) {
+      finish();
+      return;
+    }
 
     // LIST 並び替え
     if (activeType === "list" && overType === "list") {
@@ -324,6 +353,7 @@ export default function BoardView({
         .catch((err) =>
           console.error("reorderList failed", { activeId, newPos, err }),
         );
+      finish();
       return;
     }
 
@@ -331,7 +361,10 @@ export default function BoardView({
     if (activeType === "card") {
       const fromListId = String(ev.active.data.current?.listId);
       const toListId = over ? String(over.data.current?.listId ?? over.id) : "";
-      if (!toListId) return;
+      if (!toListId) {
+        finish();
+        return;
+      }
 
       // 末尾positionを常に安全に出すためのヘルパ
       const tailPosition = (lid: ID) => {
@@ -346,7 +379,7 @@ export default function BoardView({
         fromListId === toListId &&
         (overType === "list-drop" || overType === "list-bottom")
       ) {
-        const newPos = tailPosition(fromListId);
+        const newPos = tailPosition(fromListId as ID);
         saReorderCard({
           cardId: activeId,
           toListId: fromListId,
@@ -361,6 +394,7 @@ export default function BoardView({
               err,
             }),
           );
+        finish();
         return;
       }
 
@@ -369,7 +403,7 @@ export default function BoardView({
         fromListId !== toListId &&
         (overType === "list-drop" || overType === "list-bottom")
       ) {
-        const newCardPos = tailPosition(toListId);
+        const newCardPos = tailPosition(toListId as ID);
         moveCardToAnotherList({ fromListId, toListId, cardId: activeId });
         saReorderCard({ cardId: activeId, toListId, position: newCardPos })
           .then(() => router.refresh())
@@ -381,12 +415,13 @@ export default function BoardView({
               err,
             }),
           );
+        finish();
         return;
       }
 
       // 同一リスト（カード上）
       if (fromListId === toListId && overType === "card") {
-        const before = effectiveCards(fromListId).map((x) => ({ ...x }));
+        const before = effectiveCards(fromListId as ID).map((x) => ({ ...x }));
         const after = arrayMoveById(before, activeId, overId!);
         const j = after.findIndex((x) => String(x.id) === activeId);
         const prevC = j > 0 ? after[j - 1].position : undefined;
@@ -394,7 +429,7 @@ export default function BoardView({
         const newPos = midPosition(prevC, nextC);
 
         reorderCardInList({
-          listId: fromListId,
+          listId: fromListId as ID,
           activeCardId: activeId,
           overCardId: overId!,
         });
@@ -408,11 +443,12 @@ export default function BoardView({
               err,
             }),
           );
+        finish();
         return;
       }
 
-      // リスト跨ぎ（カード上）
-      const beforeTo = effectiveCards(toListId).map((x) => ({ ...x }));
+      // リスト跨ぎ（カード上 or リスト本体）
+      const beforeTo = effectiveCards(toListId as ID).map((x) => ({ ...x }));
       const afterTo =
         overType === "card"
           ? arrayMoveById(
@@ -434,8 +470,9 @@ export default function BoardView({
         fromListId,
         toListId,
         cardId: activeId,
-        overCardId: overType === "card" ? overId! : undefined,
+        overCardId: overType === "card" ? (overId! as ID) : undefined,
       });
+
       saReorderCard({ cardId: activeId, toListId, position: newCardPos })
         .then(() => router.refresh())
         .catch((err) =>
@@ -446,10 +483,61 @@ export default function BoardView({
             err,
           }),
         );
+
+      finish();
+      return;
     }
+
+    finish();
   }
 
-  function onDragOver(_ev: DragOverEvent) {}
+  function onDragOver(ev: DragOverEvent) {
+    const activeType = ev.active.data.current?.type as
+      | "card"
+      | "list"
+      | undefined;
+    if (activeType !== "card") {
+      if (overInfo) setOverInfo(null);
+      return;
+    }
+
+    const over = ev.over;
+    if (!over) {
+      if (overInfo) setOverInfo(null);
+      return;
+    }
+
+    const overType = over.data.current?.type as
+      | "card"
+      | "list"
+      | "list-drop"
+      | "list-bottom"
+      | undefined;
+
+    if (!overType || overType === "list") {
+      if (overInfo) setOverInfo(null);
+      return;
+    }
+
+    const toListId = String(over.data.current?.listId ?? "");
+    if (!toListId) {
+      if (overInfo) setOverInfo(null);
+      return;
+    }
+
+    if (overType === "card" && String(over.id) === String(ev.active.id)) return;
+
+    const next: OverInfo =
+      overType === "card"
+        ? {
+            listId: toListId as ID,
+            overType: "card",
+            overCardId: String(over.id) as ID,
+          }
+        : { listId: toListId as ID, overType, overCardId: null };
+
+    if (!eqOverInfo(overInfo, next)) setOverInfo(next);
+  }
 
   // SSR/初回は静的、マウント後にDnDへ切替
   if (!hydrated) {
@@ -491,18 +579,69 @@ export default function BoardView({
           strategy={horizontalListSortingStrategy}
         >
           <div className="flex gap-4 overflow-x-auto pb-2">
-            {effectiveLists.map((l) => (
-              <SortableList key={l.id} list={l}>
-                <SortableContext
-                  items={effectiveCards(l.id).map((c) => c.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {effectiveCards(l.id).map((c) => (
-                    <SortableCard key={c.id} card={c} listId={l.id} />
-                  ))}
-                </SortableContext>
-              </SortableList>
-            ))}
+            {effectiveLists.map((l) => {
+              // 実データのID配列
+              const baseIds = effectiveCards(l.id).map((c) => c.id);
+              let ids = baseIds;
+
+              // ★ 別リストへドラッグ中だけ“見た目の配列”を投影
+              if (activeCard && activeCardListId && overInfo) {
+                const fromId = String(activeCardListId);
+                const toId = String(overInfo.listId);
+                const activeId = String(activeCard.id);
+
+                if (fromId !== toId) {
+                  if (String(l.id) === fromId) {
+                    // 元リストからは active を除外（= 元リストで空白が消える）
+                    ids = baseIds.filter((id) => String(id) !== activeId);
+                  } else if (String(l.id) === toId) {
+                    // 先リストに active を一時挿入 → 既存カードがスライドして空白ができる
+                    const next = baseIds.filter(
+                      (id) => String(id) !== activeId,
+                    );
+                    if (overInfo.overType === "card" && overInfo.overCardId) {
+                      const idx = next.findIndex(
+                        (id) => String(id) === String(overInfo.overCardId),
+                      );
+                      if (idx >= 0) next.splice(idx, 0, activeCard.id);
+                      else next.push(activeCard.id);
+                    } else {
+                      // list-drop / list-bottom → 末尾へ
+                      next.push(activeCard.id);
+                    }
+                    ids = next;
+                  }
+                }
+              }
+
+              return (
+                <SortableList key={l.id} list={l}>
+                  <SortableContext
+                    items={ids}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {ids.map((id) => {
+                      // 実データに無いが投影で現れた activeId は activeCard を使って描画
+                      const card =
+                        effectiveCards(l.id).find(
+                          (c) => String(c.id) === String(id),
+                        ) ??
+                        (activeCard && String(id) === String(activeCard.id)
+                          ? (activeCard as Card)
+                          : null);
+                      if (!card) return null;
+                      return (
+                        <SortableCard
+                          key={String(card.id)}
+                          card={card}
+                          listId={l.id}
+                        />
+                      );
+                    })}
+                  </SortableContext>
+                </SortableList>
+              );
+            })}
           </div>
         </SortableContext>
 
