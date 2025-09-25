@@ -97,16 +97,11 @@ function midPosition(prev?: number, next?: number) {
 
 // リスト末尾だけを拾う専用ゾーン
 function BottomDropZone({ listId }: { listId: ID }) {
-  const { setNodeRef, isOver } = useDroppable({
+  const { setNodeRef } = useDroppable({
     id: `drop-bottom-${listId}`,
     data: { type: "list-bottom", listId },
   });
-  return (
-    <div
-      ref={setNodeRef}
-      className={`h-6 ${isOver ? "rounded-md outline outline-2 outline-primary/50" : ""}`}
-    />
-  );
+  return <div ref={setNodeRef} className="h-6" />;
 }
 
 // 従来のボディ（list-drop）
@@ -117,17 +112,12 @@ function DroppableListBody({
   listId: ID;
   children: React.ReactNode;
 }) {
-  const { isOver, setNodeRef } = useDroppable({
+  const { setNodeRef } = useDroppable({
     id: `drop-${listId}`,
     data: { type: "list-drop", listId },
   });
   return (
-    <div
-      ref={setNodeRef}
-      className={`space-y-3 rounded-b-2xl p-3 ${
-        isOver ? "outline outline-2 outline-primary/50" : ""
-      }`}
-    >
+    <div ref={setNodeRef} className="space-y-3 rounded-b-2xl p-3">
       {children}
       {/* 末尾ゾーン */}
       <BottomDropZone listId={listId} />
