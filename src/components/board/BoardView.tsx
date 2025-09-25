@@ -453,62 +453,70 @@ export default function BoardView({
         return;
       }
 
-      // リスト跨ぎ（カード上 or リスト本体）
-      const beforeTo = effectiveCards(toListId as ID).map((x) => ({ ...x }));
-      const placeholder = { id: activeId, position: 0 } as any;
-      const base = beforeTo.find((x) => String(x.id) === activeId)
-        ? beforeTo
-        : [...beforeTo, placeholder];
-
-      // ★ 投影＝確定：overInfo を最優先。無ければ ev.over へフォールバック。
-      let afterTo = base;
-      if (overInfo && String(overInfo.listId) === String(toListId)) {
-        if (overInfo.overType === "card" && overInfo.overCardId) {
-          afterTo = arrayMoveById(base, activeId, String(overInfo.overCardId));
-        } else {
-          // list-drop / list-bottom → 末尾に“投影”
-          afterTo = [...beforeTo, placeholder];
-        }
-      } else if (overType === "card" && overId) {
-        // フォールバック：ドロップ瞬間にカード上ならそれを採用
-        afterTo = arrayMoveById(base, activeId, overId);
-      } else {
-        // それ以外は末尾に“投影”
-        afterTo = [...beforeTo, placeholder];
+      if (fromListId === toListId) {
+        // ヘッダーや不明なドロップ先は何もしない
+        finish();
+        return;
       }
 
-      const k = afterTo.findIndex((x) => String(x.id) === activeId);
-      const prevK = k > 0 ? afterTo[k - 1].position : undefined;
-      const nextK =
-        k < afterTo.length - 1 ? afterTo[k + 1].position : undefined;
-      const newCardPos = midPosition(prevK, nextK);
+      // リスト跨ぎ（カード上 or リスト本体）
+      if (fromListId !== toListId) {
+        const beforeTo = effectiveCards(toListId as ID).map((x) => ({ ...x }));
+        const placeholder = { id: activeId, position: 0 } as any;
+        const base = beforeTo.find((x) => String(x.id) === activeId)
+          ? beforeTo
+          : [...beforeTo, placeholder];
 
-      // ★ “active の直後ID” を確定アンカーに（= その直前に入る）
-      const nextId = (afterTo[k + 1]?.id as ID | undefined) ?? undefined;
+        let afterTo = base;
+        if (overInfo && String(overInfo.listId) === String(toListId)) {
+          if (overInfo.overType === "card" && overInfo.overCardId) {
+            afterTo = arrayMoveById(
+              base,
+              activeId,
+              String(overInfo.overCardId),
+            );
+          } else {
+            afterTo = [...beforeTo, placeholder];
+          }
+        } else if (overType === "card" && overId) {
+          afterTo = arrayMoveById(base, activeId, overId);
+        } else {
+          afterTo = [...beforeTo, placeholder];
+        }
 
-      moveCardToAnotherList({
-        fromListId,
-        toListId,
-        cardId: activeId,
-        overCardId: nextId, // ← nextId を渡す（overId ではない）
-      });
+        const k = afterTo.findIndex((x) => String(x.id) === activeId);
+        const prevK = k > 0 ? afterTo[k - 1].position : undefined;
+        const nextK =
+          k < afterTo.length - 1 ? afterTo[k + 1].position : undefined;
+        const newCardPos = midPosition(prevK, nextK);
 
-      saReorderCard({ cardId: activeId, toListId, position: newCardPos })
-        .then(() => router.refresh())
-        .catch((err) =>
-          console.error("reorderCard(cross-list) failed", {
-            cardId: activeId,
-            toListId,
-            newCardPos,
-            err,
-          }),
-        );
+        const nextId = (afterTo[k + 1]?.id as ID | undefined) ?? undefined;
 
+        moveCardToAnotherList({
+          fromListId,
+          toListId,
+          cardId: activeId,
+          overCardId: nextId,
+        });
+
+        saReorderCard({ cardId: activeId, toListId, position: newCardPos })
+          .then(() => router.refresh())
+          .catch((err) =>
+            console.error("reorderCard(cross-list) failed", {
+              cardId: activeId,
+              toListId,
+              newCardPos,
+              err,
+            }),
+          );
+
+        finish();
+        return;
+      }
+      // ここまで来たら safety（通常ここには来ない）
       finish();
       return;
     }
-
-    finish();
   }
 
   function onDragOver(ev: DragOverEvent) {
