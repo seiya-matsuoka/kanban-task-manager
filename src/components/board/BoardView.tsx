@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -282,13 +282,21 @@ export default function BoardView({
   const [activeList, setActiveList] = useState<List | null>(null);
   const [overInfo, setOverInfo] = useState<OverInfo>(null);
 
-  // 初回は SSR スナップショットを描画、マウント後に DnD 表示へ切替
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    initBoardData({ boardId, lists, cardsByList });
+    // マウント時に一度だけ true
     setHydrated(true);
+  }, []);
+
+  const didInitRef = useRef<ID | null>(null);
+
+  useEffect(() => {
+    // boardId ごとに一度だけ初期化
+    if (didInitRef.current === boardId) return;
+    initBoardData({ boardId, lists, cardsByList });
+    didInitRef.current = boardId;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [boardId, lists, cardsByList]);
+  }, [boardId]);
 
   // ハイドレート後は必ず Store を使う
   const effectiveLists = hydrated ? (listsByBoard[boardId] ?? []) : lists;
