@@ -272,16 +272,11 @@ export default function BoardView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId, lists, cardsByList]);
 
-  // 初回は props をそのまま使い、ハイドレート後にストアへ切替
-  const effectiveLists =
-    hydrated && (listsByBoard[boardId]?.length ?? 0) > 0
-      ? listsByBoard[boardId]!
-      : lists;
+  // ハイドレート後は必ず Store を使う
+  const effectiveLists = hydrated ? (listsByBoard[boardId] ?? []) : lists;
 
   const effectiveCards = (lid: ID) =>
-    hydrated && (storeCards[lid]?.length ?? 0) > 0
-      ? storeCards[lid]!
-      : (cardsByList[lid] ?? []);
+    hydrated ? (storeCards[lid] ?? []) : (cardsByList[lid] ?? []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
