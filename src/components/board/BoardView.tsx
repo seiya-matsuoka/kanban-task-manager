@@ -359,7 +359,13 @@ export default function BoardView({
 
     // CARD 並び替え/リスト跨ぎ
     if (activeType === "card") {
-      const fromListId = String(ev.active.data.current?.listId);
+      const fromListId = String(
+        activeCardListId ?? ev.active.data.current?.listId ?? "",
+      );
+      if (!fromListId) {
+        finish();
+        return;
+      }
       const toListId = over ? String(over.data.current?.listId ?? over.id) : "";
       if (!toListId) {
         finish();
@@ -398,27 +404,6 @@ export default function BoardView({
         return;
       }
 
-      // 別リスト × 末尾ゾーン（list-drop / list-bottom）にドロップ → 末尾へ
-      if (
-        fromListId !== toListId &&
-        (overType === "list-drop" || overType === "list-bottom")
-      ) {
-        const newCardPos = tailPosition(toListId as ID);
-        moveCardToAnotherList({ fromListId, toListId, cardId: activeId });
-        saReorderCard({ cardId: activeId, toListId, position: newCardPos })
-          .then(() => router.refresh())
-          .catch((err) =>
-            console.error("reorderCard(cross-list bottom) failed", {
-              cardId: activeId,
-              toListId,
-              newCardPos,
-              err,
-            }),
-          );
-        finish();
-        return;
-      }
-
       // 同一リスト（カード上）
       if (fromListId === toListId && overType === "card") {
         const before = effectiveCards(fromListId as ID).map((x) => ({ ...x }));
@@ -449,16 +434,27 @@ export default function BoardView({
 
       // リスト跨ぎ（カード上 or リスト本体）
       const beforeTo = effectiveCards(toListId as ID).map((x) => ({ ...x }));
-      const afterTo =
-        overType === "card"
-          ? arrayMoveById(
-              beforeTo.find((x) => String(x.id) === activeId)
-                ? beforeTo
-                : [...beforeTo, { id: activeId, position: 0 } as any],
-              activeId,
-              overId!,
-            )
-          : [...beforeTo, { id: activeId, position: 0 } as any];
+      const placeholder = { id: activeId, position: 0 } as any;
+      const base = beforeTo.find((x) => String(x.id) === activeId)
+        ? beforeTo
+        : [...beforeTo, placeholder];
+
+      // ★ 投影＝確定：overInfo を最優先。無ければ ev.over へフォールバック。
+      let afterTo = base;
+      if (overInfo && String(overInfo.listId) === String(toListId)) {
+        if (overInfo.overType === "card" && overInfo.overCardId) {
+          afterTo = arrayMoveById(base, activeId, String(overInfo.overCardId));
+        } else {
+          // list-drop / list-bottom → 末尾に“投影”
+          afterTo = [...beforeTo, placeholder];
+        }
+      } else if (overType === "card" && overId) {
+        // フォールバック：ドロップ瞬間にカード上ならそれを採用
+        afterTo = arrayMoveById(base, activeId, overId);
+      } else {
+        // それ以外は末尾に“投影”
+        afterTo = [...beforeTo, placeholder];
+      }
 
       const k = afterTo.findIndex((x) => String(x.id) === activeId);
       const prevK = k > 0 ? afterTo[k - 1].position : undefined;
@@ -466,11 +462,14 @@ export default function BoardView({
         k < afterTo.length - 1 ? afterTo[k + 1].position : undefined;
       const newCardPos = midPosition(prevK, nextK);
 
+      // ★ “active の直後ID” を確定アンカーに（= その直前に入る）
+      const nextId = (afterTo[k + 1]?.id as ID | undefined) ?? undefined;
+
       moveCardToAnotherList({
         fromListId,
         toListId,
         cardId: activeId,
-        overCardId: overType === "card" ? (overId! as ID) : undefined,
+        overCardId: nextId, // ← nextId を渡す（overId ではない）
       });
 
       saReorderCard({ cardId: activeId, toListId, position: newCardPos })
