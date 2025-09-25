@@ -13,6 +13,8 @@ import {
   useSensors,
   useDroppable,
   rectIntersection,
+  closestCenter,
+  type CollisionDetection,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -42,6 +44,22 @@ type OverInfo = {
   overType: "card" | "list-drop" | "list-bottom";
   overCardId?: ID | null;
 } | null;
+
+const listAwareCollision: CollisionDetection = (args) => {
+  const activeType = args.active?.data?.current?.type as
+    | "card"
+    | "list"
+    | undefined;
+
+  if (activeType === "list") {
+    const listsOnly = args.droppableContainers.filter(
+      (dc) => dc.data?.current?.type === "list",
+    );
+    return closestCenter({ ...args, droppableContainers: listsOnly });
+  }
+
+  return rectIntersection(args);
+};
 
 function eqOverInfo(a: OverInfo, b: OverInfo) {
   if (!a && !b) return true;
@@ -563,7 +581,7 @@ export default function BoardView({
       </h2>
       <DndContext
         sensors={sensors}
-        collisionDetection={rectIntersection}
+        collisionDetection={listAwareCollision}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onDragOver={onDragOver}
@@ -646,16 +664,12 @@ export default function BoardView({
               <CardView card={activeCard} listId={activeCardListId} />
             </div>
           ) : activeList ? (
-            <div className="w-64 min-w-[260px] shrink-0 rounded-2xl border bg-card shadow-lg">
-              <div className="flex items-center justify-between gap-2 border-b px-4 py-3 font-medium">
-                <span>
-                  {activeList.title}{" "}
-                  <span className="text-xs text-muted-foreground">
-                    pos:{activeList.position}
-                  </span>
-                </span>
-              </div>
-              <div className="p-3 text-xs text-muted-foreground">移動中…</div>
+            <div className="pointer-events-none">
+              <StaticList list={activeList}>
+                {effectiveCards(activeList.id).map((c) => (
+                  <StaticCard key={c.id} card={c} listId={activeList.id} />
+                ))}
+              </StaticList>
             </div>
           ) : null}
         </DragOverlay>
