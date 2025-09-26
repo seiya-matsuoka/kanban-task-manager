@@ -142,11 +142,12 @@ function DroppableListBody({
     data: { type: "list-drop", listId },
   });
   return (
-    <div ref={setNodeRef} className="space-y-3 rounded-b-2xl p-3">
+    <div
+      ref={setNodeRef}
+      className="max-h-[calc(100dvh-56px-56px-24px-48px-12px)] space-y-3 overflow-y-auto rounded-b-2xl p-3"
+    >
       {children}
-      {/* 末尾ゾーン */}
       <BottomDropZone listId={listId} />
-      {/* カード追加UI */}
       <AddCardRow boardId={String(boardId)} listId={String(listId)} />
     </div>
   );
@@ -214,10 +215,14 @@ function SortableList({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="w-64 min-w-[260px] shrink-0">
-      <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 shadow-sm">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="w-[272px] min-w-[272px] shrink-0"
+    >
+      <div className="flex max-h-[calc(100dvh-56px-56px-24px)] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/70 shadow-sm">
         <div
-          className="flex select-none items-center justify-between gap-2 border-b border-slate-200/70 bg-slate-50 px-4 py-3 font-medium"
+          className="flex h-12 select-none items-center justify-between gap-2 border-b border-slate-200/70 bg-slate-50 px-4 font-medium"
           {...attributes}
           {...listeners}
         >
@@ -313,9 +318,9 @@ function StaticList({
   listEdit: ListEditProps;
 }) {
   return (
-    <div className="w-64 min-w-[260px] shrink-0">
-      <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 shadow-sm">
-        <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 bg-slate-50 px-4 py-3 font-medium">
+    <div className="w-[272px] min-w-[272px] shrink-0">
+      <div className="flex max-h-[calc(100dvh-56px-56px-24px)] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/70 shadow-sm">
+        <div className="flex h-12 items-center justify-between gap-2 border-b border-slate-200/70 bg-slate-50 px-4 font-medium">
           <div className="min-w-0 flex-1">
             {listEdit.editingListId === String(list.id) ? (
               <Input
@@ -348,7 +353,7 @@ function StaticList({
             />
           </div>
         </div>
-        <div className="space-y-3 rounded-b-2xl p-3">
+        <div className="max-h-[calc(100dvh-56px-56px-24px-48px-12px)] space-y-3 overflow-y-auto rounded-b-2xl p-3">
           {children}
           <AddCardRow boardId={String(list.boardId)} listId={String(list.id)} />
         </div>
@@ -712,34 +717,46 @@ export default function BoardView({
   // SSR/初回は静的、マウント後にDnDへ切替
   if (!hydrated) {
     return (
-      <div className="space-y-4" suppressHydrationWarning>
-        <h2 className="flex items-center gap-3 text-xl font-semibold">
+      <div
+        className="grid h-full grid-rows-[auto,1fr]"
+        suppressHydrationWarning
+      >
+        {/* ページ内ヘッダ（sticky） */}
+        <div className="sticky top-0 z-10 border-b bg-background/80 px-6 py-3 text-xl font-semibold backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:px-8">
           {boardTitle}
-          {/* <QuickCreate boardId={boardId} /> */}
-        </h2>
-        <div className="flex gap-4 overflow-x-auto pb-2">
-          {lists.map((l) => (
-            <StaticList
-              key={l.id}
-              list={l}
-              listEdit={{
-                editingListId,
-                listTitleDraft,
-                onStartEdit: (id, current) => {
-                  setEditingListId(id);
-                  setListTitleDraft(current);
-                },
-                onChangeDraft: setListTitleDraft,
-                onCommit: (id) => commitListTitle(id),
-                onCancel: () => setEditingListId(null),
-              }}
-            >
-              {(cardsByList[l.id] ?? []).map((c) => (
-                <StaticCard key={c.id} card={c} listId={l.id} />
-              ))}
-            </StaticList>
-          ))}
-          <AddListColumn boardId={String(boardId)} />
+        </div>
+
+        {/* リスト帯：横スクロール専用 */}
+        <div className="mt-2 overflow-x-auto overflow-y-hidden px-6 pb-6 lg:px-8">
+          <div className="flex h-full items-start gap-4">
+            {lists.map((l) => (
+              <StaticList
+                key={l.id}
+                list={l}
+                listEdit={{
+                  editingListId,
+                  listTitleDraft,
+                  onStartEdit: (id, current) => {
+                    setEditingListId(id);
+                    setListTitleDraft(current);
+                  },
+                  onChangeDraft: setListTitleDraft,
+                  onCommit: (id) => commitListTitle(id),
+                  onCancel: () => setEditingListId(null),
+                }}
+              >
+                {(cardsByList[l.id] ?? []).map((c) => (
+                  <StaticCard key={c.id} card={c} listId={l.id} />
+                ))}
+              </StaticList>
+            ))}
+            {/* 右端の“リストを追加” */}
+            <div className="h-full w-[272px] min-w-[272px] shrink-0">
+              <div className="">
+                <AddListColumn boardId={String(boardId)} />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -747,152 +764,161 @@ export default function BoardView({
 
   // ハイドレート後は DnD を有効化
   return (
-    <div className="space-y-4">
-      <h2 className="flex items-center gap-3 text-xl font-semibold">
+    <div className="grid h-full grid-rows-[auto,1fr]">
+      {/* ページ内ヘッダ（sticky） */}
+      <div className="sticky top-0 z-10 border-b bg-background/80 px-6 py-3 text-xl font-semibold backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:px-8">
         {boardTitle}
-        {/* <QuickCreate boardId={boardId} /> */}
-      </h2>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={listAwareCollision}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        onDragOver={onDragOver}
-      >
-        <SortableContext
-          items={effectiveLists.map((l) => l.id)}
-          strategy={horizontalListSortingStrategy}
+      </div>
+
+      <div className="mt-2 overflow-x-auto overflow-y-hidden px-6 pb-6 lg:px-8">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={listAwareCollision}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          onDragOver={onDragOver}
         >
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            {effectiveLists.map((l) => {
-              // 実データのID配列
-              const baseIds = effectiveCards(l.id).map((c) => c.id);
-              let ids = baseIds;
+          <SortableContext
+            items={effectiveLists.map((l) => l.id)}
+            strategy={horizontalListSortingStrategy}
+          >
+            <div className="flex h-full items-start gap-4">
+              {effectiveLists.map((l) => {
+                // 実データのID配列
+                const baseIds = effectiveCards(l.id).map((c) => c.id);
+                let ids = baseIds;
 
-              // ★ 別リストへドラッグ中だけ“見た目の配列”を投影
-              if (activeCard && activeCardListId && overInfo) {
-                const fromId = String(activeCardListId);
-                const toId = String(overInfo.listId);
-                const activeId = String(activeCard.id);
+                // ★ 別リストへドラッグ中だけ“見た目の配列”を投影
+                if (activeCard && activeCardListId && overInfo) {
+                  const fromId = String(activeCardListId);
+                  const toId = String(overInfo.listId);
+                  const activeId = String(activeCard.id);
 
-                if (fromId !== toId) {
-                  if (String(l.id) === fromId) {
-                    // 元リストからは active を除外（= 元リストで空白が消える）
-                    ids = baseIds.filter((id) => String(id) !== activeId);
-                  } else if (String(l.id) === toId) {
-                    // 先リストに active を一時挿入 → 既存カードがスライドして空白ができる
-                    const next = baseIds.filter(
-                      (id) => String(id) !== activeId,
-                    );
-                    if (overInfo.overType === "card" && overInfo.overCardId) {
-                      const idx = next.findIndex(
-                        (id) => String(id) === String(overInfo.overCardId),
+                  if (fromId !== toId) {
+                    if (String(l.id) === fromId) {
+                      // 元リストからは active を除外（= 元リストで空白が消える）
+                      ids = baseIds.filter((id) => String(id) !== activeId);
+                    } else if (String(l.id) === toId) {
+                      // 先リストに active を一時挿入 → 既存カードがスライドして空白ができる
+                      const next = baseIds.filter(
+                        (id) => String(id) !== activeId,
                       );
-                      if (idx >= 0) next.splice(idx, 0, activeCard.id);
-                      else next.push(activeCard.id);
-                    } else {
-                      // list-drop / list-bottom → 末尾へ
-                      next.push(activeCard.id);
+                      if (overInfo.overType === "card" && overInfo.overCardId) {
+                        const idx = next.findIndex(
+                          (id) => String(id) === String(overInfo.overCardId),
+                        );
+                        if (idx >= 0) next.splice(idx, 0, activeCard.id);
+                        else next.push(activeCard.id);
+                      } else {
+                        // list-drop / list-bottom → 末尾へ
+                        next.push(activeCard.id);
+                      }
+                      ids = next;
                     }
-                    ids = next;
                   }
                 }
-              }
 
-              return (
-                <SortableList
-                  key={l.id}
-                  list={l}
+                return (
+                  <SortableList
+                    key={l.id}
+                    list={l}
+                    listEdit={{
+                      editingListId,
+                      listTitleDraft,
+                      onStartEdit: (id, current) => {
+                        setEditingListId(id);
+                        setListTitleDraft(current);
+                      },
+                      onChangeDraft: setListTitleDraft,
+                      onCommit: (id) => commitListTitle(id),
+                      onCancel: () => setEditingListId(null),
+                    }}
+                  >
+                    <SortableContext
+                      items={ids}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {ids.map((id) => {
+                        const card =
+                          effectiveCards(l.id).find(
+                            (c) => String(c.id) === String(id),
+                          ) ??
+                          (activeCard && String(id) === String(activeCard.id)
+                            ? (activeCard as Card)
+                            : null);
+                        if (!card) return null;
+                        return (
+                          <SortableCard
+                            key={String(card.id)}
+                            card={card}
+                            listId={l.id}
+                            edit={{
+                              isEditing: editingCardId === String(card.id),
+                              titleDraft: cardTitleDraft,
+                              onStartEdit: () => {
+                                setEditingCardId(String(card.id));
+                                setCardTitleDraft(card.title);
+                              },
+                              onChangeDraft: setCardTitleDraft,
+                              onCommit: () => commitCardTitle(String(card.id)),
+                              onCancel: () => setEditingCardId(null),
+                            }}
+                          />
+                        );
+                      })}
+                    </SortableContext>
+                  </SortableList>
+                );
+              })}
+
+              {/* 右端の“リストを追加” */}
+              <div className="h-full w-[272px] min-w-[272px] shrink-0">
+                <div className="">
+                  <AddListColumn boardId={String(boardId)} />
+                </div>
+              </div>
+            </div>
+          </SortableContext>
+
+          {/* ドラッグ中の見た目だけを表示 */}
+          <DragOverlay>
+            {activeCard && activeCardListId ? (
+              <div className="pointer-events-none">
+                <CardView
+                  card={activeCard}
+                  listId={activeCardListId}
+                  edit={{
+                    isEditing: false,
+                    titleDraft: "",
+                    onStartEdit: () => {},
+                    onChangeDraft: () => {},
+                    onCommit: () => {},
+                    onCancel: () => {},
+                  }}
+                />
+              </div>
+            ) : activeList ? (
+              <div className="pointer-events-none">
+                <StaticList
+                  list={activeList}
                   listEdit={{
-                    editingListId,
-                    listTitleDraft,
-                    onStartEdit: (id, current) => {
-                      setEditingListId(id);
-                      setListTitleDraft(current);
-                    },
-                    onChangeDraft: setListTitleDraft,
-                    onCommit: (id) => commitListTitle(id),
-                    onCancel: () => setEditingListId(null),
+                    editingListId: null,
+                    listTitleDraft: "",
+                    onStartEdit: () => {},
+                    onChangeDraft: () => {},
+                    onCommit: () => {},
+                    onCancel: () => {},
                   }}
                 >
-                  <SortableContext
-                    items={ids}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {ids.map((id) => {
-                      const card =
-                        effectiveCards(l.id).find(
-                          (c) => String(c.id) === String(id),
-                        ) ??
-                        (activeCard && String(id) === String(activeCard.id)
-                          ? (activeCard as Card)
-                          : null);
-                      if (!card) return null;
-                      return (
-                        <SortableCard
-                          key={String(card.id)}
-                          card={card}
-                          listId={l.id}
-                          edit={{
-                            isEditing: editingCardId === String(card.id),
-                            titleDraft: cardTitleDraft,
-                            onStartEdit: () => {
-                              setEditingCardId(String(card.id));
-                              setCardTitleDraft(card.title);
-                            },
-                            onChangeDraft: setCardTitleDraft,
-                            onCommit: () => commitCardTitle(String(card.id)),
-                            onCancel: () => setEditingCardId(null),
-                          }}
-                        />
-                      );
-                    })}
-                  </SortableContext>
-                </SortableList>
-              );
-            })}
-            <AddListColumn boardId={String(boardId)} />
-          </div>
-        </SortableContext>
-
-        {/* ドラッグ中の見た目だけを表示 */}
-        <DragOverlay>
-          {activeCard && activeCardListId ? (
-            <div className="pointer-events-none">
-              <CardView
-                card={activeCard}
-                listId={activeCardListId}
-                edit={{
-                  isEditing: false,
-                  titleDraft: "",
-                  onStartEdit: () => {},
-                  onChangeDraft: () => {},
-                  onCommit: () => {},
-                  onCancel: () => {},
-                }}
-              />
-            </div>
-          ) : activeList ? (
-            <div className="pointer-events-none">
-              <StaticList
-                list={activeList}
-                listEdit={{
-                  editingListId: null,
-                  listTitleDraft: "",
-                  onStartEdit: () => {},
-                  onChangeDraft: () => {},
-                  onCommit: () => {},
-                  onCancel: () => {},
-                }}
-              >
-                {effectiveCards(activeList.id).map((c) => (
-                  <StaticCard key={c.id} card={c} listId={activeList.id} />
-                ))}
-              </StaticList>
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+                  {effectiveCards(activeList.id).map((c) => (
+                    <StaticCard key={c.id} card={c} listId={activeList.id} />
+                  ))}
+                </StaticList>
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      </div>
     </div>
   );
 }

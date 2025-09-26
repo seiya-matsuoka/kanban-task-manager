@@ -29,7 +29,7 @@ export default function AddListColumn({ boardId }: { boardId: string }) {
   if (!open) {
     return (
       <button
-        className="w-[272px] min-w-[272px] shrink-0 rounded-xl border border-dashed border-sky-200/60 bg-sky-50/40 px-4 py-3 text-left text-sm text-sky-700 hover:bg-sky-50"
+        className="flex h-12 w-[272px] min-w-[272px] shrink-0 items-center rounded-xl border border-dashed border-sky-200/60 bg-sky-50/40 px-4 text-left text-sm text-sky-700 hover:bg-sky-50"
         onClick={() => setOpen(true)}
       >
         <Plus className="mr-2 inline" size={16} />
