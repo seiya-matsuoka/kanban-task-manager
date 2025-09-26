@@ -25,8 +25,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useKanban } from "@/stores/kanban";
 import type { ID, List, Card } from "@/types/domain";
-import QuickCreate from "@/components/board/QuickCreate";
-import { EditList, EditCard } from "@/components/board/EditControls";
+import QuickCreate from "./QuickCreate";
+import { EditList, EditCard } from "./EditControls";
 import {
   reorderList as saReorderList,
   reorderCard as saReorderCard,

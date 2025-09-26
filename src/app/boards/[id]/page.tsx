@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import BoardView from "@/components/board/BoardView";
+import BoardView from "./_components/BoardView";
 
 export const dynamic = "force-dynamic";
 
