@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -62,6 +63,9 @@ export default function CreateBoardDialog() {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>新しいボード</DialogTitle>
+          <DialogDescription className="sr-only">
+            ボードのタイトルを入力して作成します。
+          </DialogDescription>
         </DialogHeader>
         <Input
           autoFocus
