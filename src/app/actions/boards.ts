@@ -2,6 +2,8 @@
 
 // import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+import type { Prisma } from "@prisma/client";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: unknown };
 const GAP = 1024;
@@ -60,32 +62,72 @@ function mid(prev?: number | null, next?: number | null, gap = 1024) {
   return p + Math.floor((n - p) / 2);
 }
 
-export async function reorderBoard(input: {
-  activeBoardId: string;
-  prev: number | null | undefined;
-  next: number | null | undefined;
+export async function updateBoardTitle(input: {
+  boardId: string;
+  title: string;
 }) {
-  const { activeBoardId, prev, next } = input;
-  const position = mid(prev ?? null, next ?? null);
-
-  const updated = await prisma.board.update({
-    where: { id: activeBoardId },
-    data: { position },
-    select: { id: true, position: true },
-  });
-
-  if (prev != null && next != null && next - prev <= 1) {
-    const all = await prisma.board.findMany({
-      orderBy: { position: "asc" },
-      select: { id: true },
+  try {
+    const title = (input?.title ?? "").trim();
+    if (!title) throw new Error("タイトルを入力してください");
+    const updated = await prisma.board.update({
+      where: { id: input.boardId },
+      data: { title },
+      select: { id: true, title: true },
     });
-    for (let i = 0; i < all.length; i++) {
-      await prisma.board.update({
-        where: { id: all[i].id },
-        data: { position: (i + 1) * 1024 },
-      });
-    }
+    revalidatePath("/boards");
+    revalidatePath(`/boards/${input.boardId}`);
+    return { ok: true, value: updated } as const;
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : String(e),
+    } as const;
   }
+}
 
-  return { ok: true, value: updated } as const;
+export async function deleteBoard(input: { boardId: string }) {
+  try {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const lists = await tx.list.findMany({
+        where: { boardId: input.boardId },
+        select: { id: true },
+      });
+      const listIds = lists.map((l: { id: string }) => l.id);
+      if (listIds.length > 0) {
+        await tx.card.deleteMany({ where: { listId: { in: listIds } } });
+      }
+      await tx.list.deleteMany({ where: { boardId: input.boardId } });
+      await tx.board.delete({ where: { id: input.boardId } });
+    });
+
+    revalidatePath("/boards");
+    return { ok: true, value: { id: input.boardId } } as const;
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : String(e),
+    } as const;
+  }
+}
+
+export async function reorderBoard(input: {
+  boardId: string;
+  prev?: number | null;
+  next?: number | null;
+}) {
+  try {
+    const position = mid(input.prev ?? null, input.next ?? null);
+    const updated = await prisma.board.update({
+      where: { id: input.boardId },
+      data: { position },
+      select: { id: true, position: true },
+    });
+    revalidatePath("/boards");
+    return { ok: true, value: updated } as const;
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : String(e),
+    } as const;
+  }
 }

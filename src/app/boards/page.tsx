@@ -1,17 +1,28 @@
-import Link from "next/link";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
+import BoardsGrid from "./_components/BoardsGrid";
 import CreateBoardDialog from "./_components/CreateBoardDialog";
 
 export const dynamic = "force-dynamic";
 
-type BoardListItem = { id: string; title: string; createdAt: Date };
+type BoardRow = {
+  id: string;
+  title: string;
+  position: number | null;
+  createdAt: Date;
+};
 
 export default async function BoardsPage() {
-  const boards: BoardListItem[] = await prisma.board.findMany({
-    orderBy: { createdAt: "desc" },
-    select: { id: true, title: true, createdAt: true },
+  const rows: BoardRow[] = await prisma.board.findMany({
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+    select: { id: true, title: true, position: true, createdAt: true },
   });
+
+  const boards = rows.map((b) => ({
+    id: b.id,
+    title: b.title,
+    position: b.position ?? 1024,
+    createdAt: b.createdAt.toISOString(),
+  }));
 
   return (
     <div className="space-y-4">
@@ -20,22 +31,7 @@ export default async function BoardsPage() {
         <CreateBoardDialog />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {boards.map((b) => (
-          <Link key={b.id} href={`/boards/${b.id}`}>
-            <Card className="transition-shadow hover:shadow-md">
-              <CardHeader>
-                <CardTitle>{b.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  作成: {new Date(b.createdAt).toLocaleString()}
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      <BoardsGrid boards={boards} />
 
       {boards.length === 0 && (
         <p className="text-sm text-muted-foreground">
