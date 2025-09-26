@@ -25,8 +25,10 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useKanban } from "@/stores/kanban";
 import type { ID, List, Card } from "@/types/domain";
-import QuickCreate from "./QuickCreate";
+// import QuickCreate from "./QuickCreate";
 import { EditList, EditCard } from "./EditControls";
+import AddListColumn from "./AddListColumn";
+import AddCardRow from "./AddCardRow";
 import {
   reorderList as saReorderList,
   reorderCard as saReorderCard,
@@ -107,9 +109,11 @@ function BottomDropZone({ listId }: { listId: ID }) {
 // 従来のボディ（list-drop）
 function DroppableListBody({
   listId,
+  boardId,
   children,
 }: {
   listId: ID;
+  boardId: ID;
   children: React.ReactNode;
 }) {
   const { setNodeRef } = useDroppable({
@@ -121,6 +125,8 @@ function DroppableListBody({
       {children}
       {/* 末尾ゾーン */}
       <BottomDropZone listId={listId} />
+      {/* カード追加UI */}
+      <AddCardRow boardId={String(boardId)} listId={String(listId)} />
     </div>
   );
 }
@@ -166,9 +172,9 @@ function SortableList({
 
   return (
     <div ref={setNodeRef} style={style} className="w-64 min-w-[260px] shrink-0">
-      <div className="rounded-2xl border bg-card">
+      <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 shadow-sm">
         <div
-          className="flex cursor-grab select-none items-center justify-between gap-2 border-b px-4 py-3 font-medium active:cursor-grabbing"
+          className="flex cursor-grab select-none items-center justify-between gap-2 border-b border-slate-200/70 bg-slate-50 px-4 py-3 font-medium active:cursor-grabbing"
           {...attributes}
           {...listeners}
         >
@@ -180,7 +186,9 @@ function SortableList({
           </span>
           <EditList listId={list.id} initialTitle={list.title} />
         </div>
-        <DroppableListBody listId={list.id}>{children}</DroppableListBody>
+        <DroppableListBody listId={list.id} boardId={list.boardId}>
+          {children}
+        </DroppableListBody>
       </div>
     </div>
   );
@@ -227,8 +235,8 @@ function StaticList({
 }) {
   return (
     <div className="w-64 min-w-[260px] shrink-0">
-      <div className="rounded-2xl border bg-card">
-        <div className="flex items-center justify-between gap-2 border-b px-4 py-3 font-medium">
+      <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 shadow-sm">
+        <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 bg-slate-50 px-4 py-3 font-medium">
           <span>
             {list.title}{" "}
             <span className="text-xs text-muted-foreground">
@@ -237,7 +245,10 @@ function StaticList({
           </span>
           <EditList listId={list.id} initialTitle={list.title} />
         </div>
-        <div className="space-y-3 rounded-b-2xl p-3">{children}</div>
+        <div className="space-y-3 rounded-b-2xl p-3">
+          {children}
+          <AddCardRow boardId={String(list.boardId)} listId={String(list.id)} />
+        </div>
       </div>
     </div>
   );
@@ -557,7 +568,7 @@ export default function BoardView({
       <div className="space-y-4" suppressHydrationWarning>
         <h2 className="flex items-center gap-3 text-xl font-semibold">
           {boardTitle}
-          <QuickCreate boardId={boardId} />
+          {/* <QuickCreate boardId={boardId} /> */}
         </h2>
         <div className="flex gap-4 overflow-x-auto pb-2">
           {lists.map((l) => (
@@ -567,6 +578,7 @@ export default function BoardView({
               ))}
             </StaticList>
           ))}
+          <AddListColumn boardId={String(boardId)} />
         </div>
       </div>
     );
@@ -577,7 +589,7 @@ export default function BoardView({
     <div className="space-y-4">
       <h2 className="flex items-center gap-3 text-xl font-semibold">
         {boardTitle}
-        <QuickCreate boardId={boardId} />
+        {/* <QuickCreate boardId={boardId} /> */}
       </h2>
       <DndContext
         sensors={sensors}
@@ -654,6 +666,7 @@ export default function BoardView({
                 </SortableList>
               );
             })}
+            <AddListColumn boardId={String(boardId)} />
           </div>
         </SortableContext>
 
