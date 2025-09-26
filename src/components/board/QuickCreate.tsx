@@ -29,21 +29,30 @@ export default function QuickCreate({ boardId }: { boardId: ID }) {
     setBusy(true);
     try {
       if (open === "list") {
-        await createList({ boardId: String(boardId), title: t });
+        const res = await createList({ boardId: String(boardId), title: t });
+        if (res?.ok === false)
+          throw new Error(String(res.error ?? "Failed to create list"));
       }
       if (open === "card") {
         const listId = lists[0]?.id;
         if (listId) {
-          await createCard({
+          const res = await createCard({
             boardId: String(boardId),
             listId: String(listId),
             title: t,
           });
+          if (res?.ok === false)
+            throw new Error(String(res.error ?? "Failed to create card"));
         }
       }
       setTitle("");
       setOpen(null);
-      router.refresh();
+
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      } else {
+        router.refresh();
+      }
     } finally {
       setBusy(false);
     }
