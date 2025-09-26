@@ -144,7 +144,7 @@ function DroppableListBody({
   return (
     <div
       ref={setNodeRef}
-      className="max-h-[calc(100dvh-56px-56px-24px-48px-12px)] space-y-3 overflow-y-auto rounded-b-2xl p-3"
+      className="max-h-[calc(100dvh-56px-56px-24px-48px-12px)] space-y-3 overflow-y-auto rounded-b-sm p-3"
     >
       {children}
       <BottomDropZone listId={listId} />
@@ -157,7 +157,7 @@ function DroppableListBody({
 function CardView(props: { card: Card; listId: ID; edit: CardEditProps }) {
   const { card, edit } = props;
   return (
-    <div className="rounded-xl border bg-background p-3 text-sm">
+    <div className="rounded-sm border border-slate-200 bg-white p-3 text-sm shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1 font-medium">
           {edit.isEditing ? (
@@ -220,9 +220,9 @@ function SortableList({
       style={style}
       className="w-[272px] min-w-[272px] shrink-0"
     >
-      <div className="flex max-h-[calc(100dvh-56px-56px-24px)] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/70 shadow-sm">
+      <div className="flex max-h-[calc(100dvh-56px-56px-24px)] flex-col overflow-hidden rounded-sm border border-slate-300/80 bg-slate-200 shadow-sm">
         <div
-          className="flex h-12 select-none items-center justify-between gap-2 border-b border-slate-200/70 bg-slate-50 px-4 font-medium"
+          className="relative flex h-12 select-none items-center gap-2 bg-slate-200 px-4 font-medium"
           {...attributes}
           {...listeners}
         >
@@ -251,7 +251,10 @@ function SortableList({
           </div>
 
           {/* 3点メニュー */}
-          <div onPointerDown={(e) => e.stopPropagation()}>
+          <div
+            className="absolute right-2 top-2"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
             <ListActions
               listId={list.id}
               onStartEdit={() =>
@@ -319,8 +322,8 @@ function StaticList({
 }) {
   return (
     <div className="w-[272px] min-w-[272px] shrink-0">
-      <div className="flex max-h-[calc(100dvh-56px-56px-24px)] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/70 shadow-sm">
-        <div className="flex h-12 items-center justify-between gap-2 border-b border-slate-200/70 bg-slate-50 px-4 font-medium">
+      <div className="flex max-h-[calc(100dvh-56px-56px-24px)] flex-col overflow-hidden rounded-sm border border-slate-300/80 bg-slate-200 shadow-sm">
+        <div className="relative flex h-12 items-center gap-2 bg-slate-200 px-4 font-medium">
           <div className="min-w-0 flex-1">
             {listEdit.editingListId === String(list.id) ? (
               <Input
@@ -344,7 +347,7 @@ function StaticList({
               </span>
             )}
           </div>
-          <div>
+          <div className="absolute right-2 top-2">
             <ListActions
               listId={list.id}
               onStartEdit={() =>
@@ -353,7 +356,7 @@ function StaticList({
             />
           </div>
         </div>
-        <div className="max-h-[calc(100dvh-56px-56px-24px-48px-12px)] space-y-3 overflow-y-auto rounded-b-2xl p-3">
+        <div className="max-h-[calc(100dvh-56px-56px-24px-48px-12px)] space-y-3 overflow-y-auto rounded-b-sm p-3">
           {children}
           <AddCardRow boardId={String(list.boardId)} listId={String(list.id)} />
         </div>
@@ -718,12 +721,14 @@ export default function BoardView({
   if (!hydrated) {
     return (
       <div
-        className="grid h-full grid-rows-[auto,1fr]"
+        className="grid h-full grid-rows-[auto,1fr] bg-sky-500"
         suppressHydrationWarning
       >
         {/* ページ内ヘッダ（sticky） */}
-        <div className="sticky top-0 z-10 border-b bg-background/80 px-6 py-3 text-xl font-semibold backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:px-8">
-          {boardTitle}
+        <div className="sticky top-0 z-10 px-6 py-3 lg:px-8">
+          <span className="inline-block rounded-md bg-sky-400/60 px-3 py-1 text-lg font-semibold text-white">
+            {boardTitle}
+          </span>
         </div>
 
         {/* リスト帯：横スクロール専用 */}
@@ -764,10 +769,12 @@ export default function BoardView({
 
   // ハイドレート後は DnD を有効化
   return (
-    <div className="grid h-full grid-rows-[auto,1fr]">
+    <div className="grid h-full grid-rows-[auto,1fr] bg-sky-500">
       {/* ページ内ヘッダ（sticky） */}
-      <div className="sticky top-0 z-10 border-b bg-background/80 px-6 py-3 text-xl font-semibold backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:px-8">
-        {boardTitle}
+      <div className="sticky top-0 z-10 px-6 py-3 lg:px-8">
+        <span className="inline-block rounded-md bg-sky-400/60 px-3 py-1 text-lg font-semibold text-white">
+          {boardTitle}
+        </span>
       </div>
 
       <div className="mt-2 overflow-x-auto overflow-y-hidden px-6 pb-6 lg:px-8">

@@ -55,11 +55,11 @@ function KebabMenu({
       {open && (
         <div
           ref={popRef}
-          className="absolute right-0 z-20 mt-1 w-40 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md"
+          className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-md border border-slate-200 bg-white/95 text-slate-800 shadow-lg backdrop-blur"
           onPointerDown={(e) => e.stopPropagation()}
         >
           <button
-            className="block w-full cursor-pointer px-3 py-2 text-left text-sm hover:bg-muted"
+            className="block w-full cursor-pointer px-3 py-2 text-left text-sm hover:bg-slate-100"
             onClick={() => {
               setOpen(false);
               onEdit();
@@ -68,7 +68,7 @@ function KebabMenu({
             名前を編集
           </button>
           <button
-            className="block w-full cursor-pointer px-3 py-2 text-left text-sm text-destructive hover:bg-muted"
+            className="block w-full cursor-pointer px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
             onClick={() => {
               setOpen(false);
               onDeleteClick();

@@ -29,7 +29,7 @@ export default function AddListColumn({ boardId }: { boardId: string }) {
   if (!open) {
     return (
       <button
-        className="flex h-12 w-[272px] min-w-[272px] shrink-0 items-center rounded-xl border border-dashed border-sky-200/60 bg-sky-50/40 px-4 text-left text-sm text-sky-700 hover:bg-sky-50"
+        className="flex h-12 w-[272px] min-w-[272px] shrink-0 items-center rounded-sm border border-dashed border-sky-300/70 bg-sky-100/60 px-4 text-left text-sm text-sky-900 hover:bg-sky-100"
         onClick={() => setOpen(true)}
       >
         <Plus className="mr-2 inline" size={16} />
@@ -39,7 +39,7 @@ export default function AddListColumn({ boardId }: { boardId: string }) {
   }
 
   return (
-    <div className="w-[272px] min-w-[272px] shrink-0 rounded-xl border border-slate-200 bg-white/90 p-3 shadow-sm">
+    <div className="w-[272px] min-w-[272px] shrink-0 rounded-sm border border-slate-300 bg-white p-3 shadow-sm">
       <Input
         autoFocus
         placeholder="List title"
