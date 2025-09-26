@@ -10,10 +10,13 @@ datasource db {
 model Board {
   id        String   @id @default(cuid())
   title     String
+  position  Int      @default(1024)
   lists     List[]
   labels    Label[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([position]) 
 }
 
 model List {
