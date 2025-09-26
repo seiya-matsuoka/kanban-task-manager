@@ -126,13 +126,15 @@ function DroppableListBody({
 }
 
 // 共通のカードUI（通常表示とドラッグ中で共用）
-function CardView({ card, listId }: { card: Card; listId: ID }) {
+function CardView(props: { card: Card; listId: ID }) {
+  const { card } = props;
+
   return (
     <div className="rounded-xl border bg-background p-3 text-sm">
       <div className="font-medium">{card.title}</div>
       <div className="text-xs text-muted-foreground">pos: {card.position}</div>
       <div className="pt-2">
-        <EditCard cardId={card.id} listId={listId} initialTitle={card.title} />
+        <EditCard cardId={card.id} initialTitle={card.title} />
       </div>
     </div>
   );
@@ -176,11 +178,7 @@ function SortableList({
               pos:{list.position}
             </span>
           </span>
-          <EditList
-            listId={list.id}
-            boardId={list.boardId}
-            initialTitle={list.title}
-          />
+          <EditList listId={list.id} initialTitle={list.title} />
         </div>
         <DroppableListBody listId={list.id}>{children}</DroppableListBody>
       </div>
@@ -237,11 +235,7 @@ function StaticList({
               pos:{list.position}
             </span>
           </span>
-          <EditList
-            listId={list.id}
-            boardId={list.boardId}
-            initialTitle={list.title}
-          />
+          <EditList listId={list.id} initialTitle={list.title} />
         </div>
         <div className="space-y-3 rounded-b-2xl p-3">{children}</div>
       </div>

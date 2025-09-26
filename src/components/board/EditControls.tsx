@@ -23,13 +23,11 @@ import {
 export function EditList({
   listId,
   initialTitle,
-  boardId,
 }: {
   listId: ID;
   initialTitle: string;
-  boardId: ID;
 }) {
-  const { updateList, removeList } = useKanban();
+  const { updateList } = useKanban();
   const [open, setOpen] = useState<null | "edit" | "delete">(null);
   const [title, setTitle] = useState(initialTitle);
   const [busy, setBusy] = useState(false);
@@ -118,17 +116,19 @@ export function EditList({
               onClick={async () => {
                 if (busy) return;
                 setBusy(true);
-                // 楽観更新
-                removeList({ boardId, listId });
                 try {
                   // DB 永続化
                   await saDeleteList({ listId: String(listId) });
+                  setOpen(null);
+                  // 成功後はフルリロード
+                  if (typeof window !== "undefined") {
+                    window.location.reload();
+                  } else {
+                    router.refresh();
+                  }
                 } catch (err) {
                   console.error("Failed to delete list", { listId, err });
-                } finally {
                   setBusy(false);
-                  setOpen(null);
-                  router.refresh();
                 }
               }}
               disabled={busy}
@@ -144,14 +144,12 @@ export function EditList({
 
 export function EditCard({
   cardId,
-  listId,
   initialTitle,
 }: {
   cardId: ID;
-  listId: ID;
   initialTitle: string;
 }) {
-  const { updateCard, removeCard } = useKanban();
+  const { updateCard } = useKanban();
   const [open, setOpen] = useState<null | "edit" | "delete">(null);
   const [title, setTitle] = useState(initialTitle);
   const [busy, setBusy] = useState(false);
@@ -239,17 +237,19 @@ export function EditCard({
               onClick={async () => {
                 if (busy) return;
                 setBusy(true);
-                // 楽観更新
-                removeCard({ listId, cardId });
                 try {
                   // DB 永続化
                   await saDeleteCard({ cardId: String(cardId) });
+                  setOpen(null);
+                  // 成功後はフルリロード
+                  if (typeof window !== "undefined") {
+                    window.location.reload();
+                  } else {
+                    router.refresh();
+                  }
                 } catch (err) {
                   console.error("Failed to delete card", { cardId, err });
-                } finally {
                   setBusy(false);
-                  setOpen(null);
-                  router.refresh();
                 }
               }}
               disabled={busy}
