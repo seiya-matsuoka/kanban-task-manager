@@ -26,13 +26,16 @@ import { CSS } from "@dnd-kit/utilities";
 import { useKanban } from "@/stores/kanban";
 import type { ID, List, Card } from "@/types/domain";
 // import QuickCreate from "./QuickCreate";
-import { EditList, EditCard } from "./EditControls";
+import { ListActions, CardActions } from "./EditControls";
 import AddListColumn from "./AddListColumn";
 import AddCardRow from "./AddCardRow";
+import { Input } from "@/components/ui/input";
 import {
   reorderList as saReorderList,
   reorderCard as saReorderCard,
 } from "@/lib/actions-bridge";
+
+const SHOW_POS = process.env.NEXT_PUBLIC_DEBUG_POS === "1";
 
 type Props = {
   boardId: ID;
@@ -46,6 +49,24 @@ type OverInfo = {
   overType: "card" | "list-drop" | "list-bottom";
   overCardId?: ID | null;
 } | null;
+
+type ListEditProps = {
+  editingListId: string | null;
+  listTitleDraft: string;
+  onStartEdit: (id: string, currentTitle: string) => void;
+  onChangeDraft: (v: string) => void;
+  onCommit: (id: string) => void;
+  onCancel: () => void;
+};
+
+type CardEditProps = {
+  isEditing: boolean;
+  titleDraft: string;
+  onStartEdit: () => void;
+  onChangeDraft: (v: string) => void;
+  onCommit: () => void;
+  onCancel: () => void;
+};
 
 const listAwareCollision: CollisionDetection = (args) => {
   const activeType = args.active?.data?.current?.type as
@@ -132,15 +153,35 @@ function DroppableListBody({
 }
 
 // 共通のカードUI（通常表示とドラッグ中で共用）
-function CardView(props: { card: Card; listId: ID }) {
-  const { card } = props;
-
+function CardView(props: { card: Card; listId: ID; edit: CardEditProps }) {
+  const { card, edit } = props;
   return (
     <div className="rounded-xl border bg-background p-3 text-sm">
-      <div className="font-medium">{card.title}</div>
-      <div className="text-xs text-muted-foreground">pos: {card.position}</div>
-      <div className="pt-2">
-        <EditCard cardId={card.id} initialTitle={card.title} />
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1 font-medium">
+          {edit.isEditing ? (
+            <Input
+              autoFocus
+              value={edit.titleDraft}
+              onChange={(e) => edit.onChangeDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") edit.onCommit();
+                if (e.key === "Escape") edit.onCancel();
+              }}
+              onBlur={edit.onCommit}
+            />
+          ) : (
+            <div className="truncate">{card.title}</div>
+          )}
+          {SHOW_POS && (
+            <div className="text-xs text-muted-foreground">
+              pos: {card.position}
+            </div>
+          )}
+        </div>
+        <div onPointerDown={(e) => e.stopPropagation()}>
+          <CardActions cardId={card.id} onStartEdit={edit.onStartEdit} />
+        </div>
       </div>
     </div>
   );
@@ -150,9 +191,11 @@ function CardView(props: { card: Card; listId: ID }) {
 function SortableList({
   list,
   children,
+  listEdit,
 }: {
   list: List;
   children: React.ReactNode;
+  listEdit: ListEditProps;
 }) {
   const {
     attributes,
@@ -174,17 +217,43 @@ function SortableList({
     <div ref={setNodeRef} style={style} className="w-64 min-w-[260px] shrink-0">
       <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 shadow-sm">
         <div
-          className="flex cursor-grab select-none items-center justify-between gap-2 border-b border-slate-200/70 bg-slate-50 px-4 py-3 font-medium active:cursor-grabbing"
+          className="flex select-none items-center justify-between gap-2 border-b border-slate-200/70 bg-slate-50 px-4 py-3 font-medium"
           {...attributes}
           {...listeners}
         >
-          <span>
-            {list.title}{" "}
-            <span className="text-xs text-muted-foreground">
-              pos:{list.position}
-            </span>
-          </span>
-          <EditList listId={list.id} initialTitle={list.title} />
+          <div className="min-w-0 flex-1">
+            {listEdit.editingListId === String(list.id) ? (
+              <Input
+                autoFocus
+                value={listEdit.listTitleDraft}
+                onChange={(e) => listEdit.onChangeDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") listEdit.onCommit(String(list.id));
+                  if (e.key === "Escape") listEdit.onCancel();
+                }}
+                onBlur={() => listEdit.onCommit(String(list.id))}
+              />
+            ) : (
+              <span className="truncate">
+                {list.title}{" "}
+                {SHOW_POS && (
+                  <span className="text-xs text-muted-foreground">
+                    pos:{list.position}
+                  </span>
+                )}
+              </span>
+            )}
+          </div>
+
+          {/* 3点メニュー */}
+          <div onPointerDown={(e) => e.stopPropagation()}>
+            <ListActions
+              listId={list.id}
+              onStartEdit={() =>
+                listEdit.onStartEdit(String(list.id), list.title)
+              }
+            />
+          </div>
         </div>
         <DroppableListBody listId={list.id} boardId={list.boardId}>
           {children}
@@ -195,7 +264,15 @@ function SortableList({
 }
 
 // DnD用ソートアイテム（カード）
-function SortableCard({ card, listId }: { card: Card; listId: ID }) {
+function SortableCard({
+  card,
+  listId,
+  edit,
+}: {
+  card: Card;
+  listId: ID;
+  edit: CardEditProps;
+}) {
   const {
     attributes,
     listeners,
@@ -220,7 +297,7 @@ function SortableCard({ card, listId }: { card: Card; listId: ID }) {
       {...listeners}
       className="cursor-grab select-none active:cursor-grabbing"
     >
-      <CardView card={card} listId={listId} />
+      <CardView card={card} listId={listId} edit={edit} />
     </div>
   );
 }
@@ -229,21 +306,47 @@ function SortableCard({ card, listId }: { card: Card; listId: ID }) {
 function StaticList({
   list,
   children,
+  listEdit,
 }: {
   list: List;
   children: React.ReactNode;
+  listEdit: ListEditProps;
 }) {
   return (
     <div className="w-64 min-w-[260px] shrink-0">
       <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 shadow-sm">
         <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 bg-slate-50 px-4 py-3 font-medium">
-          <span>
-            {list.title}{" "}
-            <span className="text-xs text-muted-foreground">
-              pos:{list.position}
-            </span>
-          </span>
-          <EditList listId={list.id} initialTitle={list.title} />
+          <div className="min-w-0 flex-1">
+            {listEdit.editingListId === String(list.id) ? (
+              <Input
+                autoFocus
+                value={listEdit.listTitleDraft}
+                onChange={(e) => listEdit.onChangeDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") listEdit.onCommit(String(list.id));
+                  if (e.key === "Escape") listEdit.onCancel();
+                }}
+                onBlur={() => listEdit.onCommit(String(list.id))}
+              />
+            ) : (
+              <span className="truncate">
+                {list.title}{" "}
+                {SHOW_POS && (
+                  <span className="text-xs text-muted-foreground">
+                    pos:{list.position}
+                  </span>
+                )}
+              </span>
+            )}
+          </div>
+          <div>
+            <ListActions
+              listId={list.id}
+              onStartEdit={() =>
+                listEdit.onStartEdit(String(list.id), list.title)
+              }
+            />
+          </div>
         </div>
         <div className="space-y-3 rounded-b-2xl p-3">
           {children}
@@ -255,7 +358,20 @@ function StaticList({
 }
 
 function StaticCard({ card, listId }: { card: Card; listId: ID }) {
-  return <CardView card={card} listId={listId} />;
+  return (
+    <CardView
+      card={card}
+      listId={listId}
+      edit={{
+        isEditing: false,
+        titleDraft: "",
+        onStartEdit: () => {},
+        onChangeDraft: () => {},
+        onCommit: () => {},
+        onCancel: () => {},
+      }}
+    />
+  );
 }
 
 export default function BoardView({
@@ -276,6 +392,37 @@ export default function BoardView({
   const [activeCardListId, setActiveCardListId] = useState<ID | null>(null);
   const [activeList, setActiveList] = useState<List | null>(null);
   const [overInfo, setOverInfo] = useState<OverInfo>(null);
+  const [editingListId, setEditingListId] = useState<string | null>(null);
+  const [listTitleDraft, setListTitleDraft] = useState("");
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [cardTitleDraft, setCardTitleDraft] = useState("");
+
+  async function commitListTitle(listId: string) {
+    const t = listTitleDraft.trim();
+    setEditingListId(null);
+    if (!t) return;
+    // 楽観更新
+    useKanban.getState().updateList({ listId, title: t });
+    try {
+      const { updateList } = await import("@/lib/actions-bridge");
+      await updateList({ listId, title: t });
+    } finally {
+      router.refresh();
+    }
+  }
+
+  async function commitCardTitle(cardId: string) {
+    const t = cardTitleDraft.trim();
+    setEditingCardId(null);
+    if (!t) return;
+    useKanban.getState().updateCard({ cardId, title: t });
+    try {
+      const { updateCard } = await import("@/lib/actions-bridge");
+      await updateCard({ cardId, title: t });
+    } finally {
+      router.refresh();
+    }
+  }
 
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
@@ -572,7 +719,21 @@ export default function BoardView({
         </h2>
         <div className="flex gap-4 overflow-x-auto pb-2">
           {lists.map((l) => (
-            <StaticList key={l.id} list={l}>
+            <StaticList
+              key={l.id}
+              list={l}
+              listEdit={{
+                editingListId,
+                listTitleDraft,
+                onStartEdit: (id, current) => {
+                  setEditingListId(id);
+                  setListTitleDraft(current);
+                },
+                onChangeDraft: setListTitleDraft,
+                onCommit: (id) => commitListTitle(id),
+                onCancel: () => setEditingListId(null),
+              }}
+            >
               {(cardsByList[l.id] ?? []).map((c) => (
                 <StaticCard key={c.id} card={c} listId={l.id} />
               ))}
@@ -639,13 +800,26 @@ export default function BoardView({
               }
 
               return (
-                <SortableList key={l.id} list={l}>
+                <SortableList
+                  key={l.id}
+                  list={l}
+                  listEdit={{
+                    editingListId,
+                    listTitleDraft,
+                    onStartEdit: (id, current) => {
+                      setEditingListId(id);
+                      setListTitleDraft(current);
+                    },
+                    onChangeDraft: setListTitleDraft,
+                    onCommit: (id) => commitListTitle(id),
+                    onCancel: () => setEditingListId(null),
+                  }}
+                >
                   <SortableContext
                     items={ids}
                     strategy={verticalListSortingStrategy}
                   >
                     {ids.map((id) => {
-                      // 実データに無いが投影で現れた activeId は activeCard を使って描画
                       const card =
                         effectiveCards(l.id).find(
                           (c) => String(c.id) === String(id),
@@ -659,6 +833,17 @@ export default function BoardView({
                           key={String(card.id)}
                           card={card}
                           listId={l.id}
+                          edit={{
+                            isEditing: editingCardId === String(card.id),
+                            titleDraft: cardTitleDraft,
+                            onStartEdit: () => {
+                              setEditingCardId(String(card.id));
+                              setCardTitleDraft(card.title);
+                            },
+                            onChangeDraft: setCardTitleDraft,
+                            onCommit: () => commitCardTitle(String(card.id)),
+                            onCancel: () => setEditingCardId(null),
+                          }}
                         />
                       );
                     })}
@@ -674,11 +859,32 @@ export default function BoardView({
         <DragOverlay>
           {activeCard && activeCardListId ? (
             <div className="pointer-events-none">
-              <CardView card={activeCard} listId={activeCardListId} />
+              <CardView
+                card={activeCard}
+                listId={activeCardListId}
+                edit={{
+                  isEditing: false,
+                  titleDraft: "",
+                  onStartEdit: () => {},
+                  onChangeDraft: () => {},
+                  onCommit: () => {},
+                  onCancel: () => {},
+                }}
+              />
             </div>
           ) : activeList ? (
             <div className="pointer-events-none">
-              <StaticList list={activeList}>
+              <StaticList
+                list={activeList}
+                listEdit={{
+                  editingListId: null,
+                  listTitleDraft: "",
+                  onStartEdit: () => {},
+                  onChangeDraft: () => {},
+                  onCommit: () => {},
+                  onCancel: () => {},
+                }}
+              >
                 {effectiveCards(activeList.id).map((c) => (
                   <StaticCard key={c.id} card={c} listId={activeList.id} />
                 ))}
