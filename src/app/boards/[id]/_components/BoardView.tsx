@@ -172,7 +172,18 @@ function CardView(props: { card: Card; listId: ID; edit: CardEditProps }) {
               onBlur={edit.onCommit}
             />
           ) : (
-            <div className="truncate">{card.title}</div>
+            <div
+              className="break-words leading-snug"
+              style={{
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}
+              title={card.title}
+            >
+              {card.title}
+            </div>
           )}
           {SHOW_POS && (
             <div className="text-xs text-muted-foreground">
@@ -226,7 +237,7 @@ function SortableList({
           {...attributes}
           {...listeners}
         >
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 pr-8">
             {listEdit.editingListId === String(list.id) ? (
               <Input
                 autoFocus
@@ -239,7 +250,7 @@ function SortableList({
                 onBlur={() => listEdit.onCommit(String(list.id))}
               />
             ) : (
-              <span className="truncate">
+              <span className="block max-w-full truncate" title={list.title}>
                 {list.title}{" "}
                 {SHOW_POS && (
                   <span className="text-xs text-muted-foreground">
@@ -324,7 +335,7 @@ function StaticList({
     <div className="w-[272px] min-w-[272px] shrink-0">
       <div className="flex max-h-[calc(100dvh-56px-56px-24px)] flex-col overflow-hidden rounded-sm border border-slate-300/80 bg-slate-200 shadow-sm">
         <div className="relative flex h-12 items-center gap-2 bg-slate-200 px-4 font-medium">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 pr-8">
             {listEdit.editingListId === String(list.id) ? (
               <Input
                 autoFocus
@@ -337,7 +348,7 @@ function StaticList({
                 onBlur={() => listEdit.onCommit(String(list.id))}
               />
             ) : (
-              <span className="truncate">
+              <span className="block max-w-full truncate" title={list.title}>
                 {list.title}{" "}
                 {SHOW_POS && (
                   <span className="text-xs text-muted-foreground">
