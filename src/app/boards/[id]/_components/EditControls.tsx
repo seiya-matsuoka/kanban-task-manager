@@ -37,7 +37,7 @@ function KebabMenu({
   }, [open]);
 
   return (
-    <div className="relative">
+    <div className="relative rounded-sm hover:bg-slate-100">
       <Button
         variant="ghost"
         size="icon"

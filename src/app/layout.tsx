@@ -16,7 +16,7 @@ export default function RootLayout({
     <html lang="ja">
       <body className="min-h-dvh bg-background text-foreground">
         {/* アプリ共通ヘッダを固定 */}
-        <header className="sticky top-0 z-50 bg-sky-950 text-white backdrop-blur">
+        <header className="sticky top-0 z-50 bg-sky-900 text-white backdrop-blur">
           <div className="flex items-center justify-between px-4 py-3">
             <h1 className="text-lg font-semibold">Kanban Task Manager</h1>
           </div>
