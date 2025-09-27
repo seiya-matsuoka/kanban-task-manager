@@ -721,12 +721,12 @@ export default function BoardView({
   if (!hydrated) {
     return (
       <div
-        className="grid h-full grid-rows-[auto,1fr] bg-sky-500"
+        className="grid h-full grid-rows-[auto,1fr] bg-sky-800"
         suppressHydrationWarning
       >
         {/* ページ内ヘッダ（sticky） */}
         <div className="sticky top-0 z-10 px-6 py-3 lg:px-8">
-          <span className="inline-block rounded-md bg-sky-400/60 px-3 py-1 text-lg font-semibold text-white">
+          <span className="inline-block rounded-sm bg-slate-100/20 px-3 py-1 text-lg font-semibold text-white">
             {boardTitle}
           </span>
         </div>
@@ -769,10 +769,10 @@ export default function BoardView({
 
   // ハイドレート後は DnD を有効化
   return (
-    <div className="grid h-full grid-rows-[auto,1fr] bg-sky-500">
+    <div className="grid h-full grid-rows-[auto,1fr] bg-sky-800">
       {/* ページ内ヘッダ（sticky） */}
       <div className="sticky top-0 z-10 px-6 py-3 lg:px-8">
-        <span className="inline-block rounded-md bg-sky-400/60 px-3 py-1 text-lg font-semibold text-white">
+        <span className="inline-block rounded-sm bg-slate-100/20 px-3 py-1 text-lg font-semibold text-white">
           {boardTitle}
         </span>
       </div>
