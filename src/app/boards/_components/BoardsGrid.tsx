@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { KebabMenu } from "../[id]/_components/EditControls";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,7 +14,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, GripVertical } from "lucide-react";
+import { GripVertical } from "lucide-react";
 import {
   DndContext,
   DragEndEvent,
@@ -43,6 +44,14 @@ type BoardItem = {
   createdAt: string;
 };
 
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
+}
+
 export default function BoardsGrid({ boards }: { boards: BoardItem[] }) {
   const router = useRouter();
   const sensors = useSensors(
@@ -69,6 +78,7 @@ export default function BoardsGrid({ boards }: { boards: BoardItem[] }) {
     setEditingId(id);
     setTitleDraft(current);
   }
+
   async function saveEdit(id: string) {
     const t = titleDraft.trim();
     setEditingId(null);
@@ -188,6 +198,7 @@ function BoardCard(props: {
   onCancel: () => void;
   onConfirmDelete: () => void;
 }) {
+  const router = useRouter();
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({
       id: props.item.id,
@@ -197,16 +208,28 @@ function BoardCard(props: {
     transition,
   };
 
+  function handleCardClick(e: React.MouseEvent) {
+    const el = e.target as HTMLElement;
+    if (el.closest("[data-no-link]")) return;
+    router.push(`/boards/${props.item.id}`);
+  }
+
   return (
     <div ref={setNodeRef} style={style}>
-      <Card className="rounded-sm border border-[var(--border)] bg-[var(--card-bg)] shadow transition-shadow hover:shadow-md">
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
+      <Card
+        role="link"
+        tabIndex={0}
+        onClick={handleCardClick}
+        className="cursor-pointer rounded-sm border border-[var(--border)] bg-[var(--card-bg)] shadow transition-shadow hover:bg-[var(--board-card-hover-bg)] hover:shadow-md"
+      >
+        <CardHeader className="relative flex items-start gap-2">
           {/* 左：ドラッグハンドル */}
           <button
             className="mr-1 cursor-grab p-1 text-muted-foreground hover:text-foreground active:cursor-grabbing"
             {...attributes}
             {...listeners}
             aria-label="並び替え"
+            data-no-link
           >
             <GripVertical size={16} />
           </button>
@@ -224,45 +247,42 @@ function BoardCard(props: {
                 }}
               />
             ) : (
-              <CardTitle className="flex items-center gap-2">
-                <Link
-                  href={`/boards/${props.item.id}`}
-                  className="block max-w-full truncate hover:underline"
-                  title={props.item.title}
-                >
-                  {props.item.title}
-                </Link>
-              </CardTitle>
+              <Link
+                href={`/boards/${props.item.id}`}
+                title={props.item.title}
+                className="block max-h-[66px] min-h-[66px] max-w-full break-words font-medium leading-snug"
+                style={{
+                  display: "-webkit-box",
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {props.item.title}
+              </Link>
             )}
           </div>
 
-          <div className="flex items-center gap-1">
-            {!props.isEditing && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={props.onStartEdit}
-                aria-label="編集"
-              >
-                <Pencil size={16} />
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={props.onConfirmDelete}
-              aria-label="削除"
-              className="text-destructive hover:text-destructive"
+          {!props.isEditing && (
+            <div
+              className="absolute right-2 top-2 font-medium"
+              onPointerDown={(e) => e.stopPropagation()}
+              data-no-link
             >
-              <Trash2 size={16} />
-            </Button>
-          </div>
+              <KebabMenu
+                onEdit={props.onStartEdit}
+                onDeleteClick={props.onConfirmDelete}
+                aria-label="ボードのメニュー"
+              />
+            </div>
+          )}
         </CardHeader>
 
         <CardContent>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs font-medium text-muted-foreground">
             {SHOW_POS ? <>pos: {props.item.position} ・ </> : null}
-            作成: {new Date(props.item.createdAt).toLocaleString()}
+            作成: {formatDate(props.item.createdAt)}
           </p>
         </CardContent>
       </Card>

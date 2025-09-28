@@ -15,7 +15,7 @@ import {
   deleteCard as saDeleteCard,
 } from "@/lib/actions-bridge";
 
-function KebabMenu({
+export function KebabMenu({
   onEdit,
   onDeleteClick,
   "aria-label": ariaLabel,
@@ -37,7 +37,7 @@ function KebabMenu({
   }, [open]);
 
   return (
-    <div className="relative rounded-sm hover:bg-slate-100">
+    <div className="relative rounded-sm">
       <Button
         variant="ghost"
         size="icon"
@@ -47,6 +47,7 @@ function KebabMenu({
           setOpen((v) => !v);
         }}
         onPointerDown={(e) => e.stopPropagation()}
+        className="hover:bg-[var(--ellipsis-hover-bg)]"
       >
         {/* 3点リーダ */}
         <span className="inline-block text-xl leading-none">⋯</span>

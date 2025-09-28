@@ -34,6 +34,9 @@ import {
   reorderList as saReorderList,
   reorderCard as saReorderCard,
 } from "@/lib/actions-bridge";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 const SHOW_POS = process.env.NEXT_PUBLIC_DEBUG_POS === "1";
 
@@ -157,8 +160,8 @@ function DroppableListBody({
 function CardView(props: { card: Card; listId: ID; edit: CardEditProps }) {
   const { card, edit } = props;
   return (
-    <div className="rounded-sm border border-[var(--border)] bg-[var(--card-bg)] p-3 text-sm shadow">
-      <div className="flex items-start justify-between gap-2">
+    <div className="rounded-sm border border-[var(--border)] bg-[var(--card-bg)] p-3 text-sm shadow hover:bg-[var(--board-card-hover-bg)]">
+      <div className="flex items-start justify-between gap-2 font-medium">
         <div className="min-w-0 flex-1 font-medium">
           {edit.isEditing ? (
             <Input
@@ -233,7 +236,7 @@ function SortableList({
     >
       <div className="flex max-h-[calc(100dvh-56px-56px-24px)] flex-col overflow-hidden rounded-sm border border-[var(--border)] bg-[var(--list-bg)] shadow-sm">
         <div
-          className="relative flex h-12 select-none items-center gap-2 bg-[var(--list-bg)] px-4 font-medium"
+          className="relative flex h-12 select-none items-center gap-2 bg-[var(--list-bg)] px-4 font-medium hover:bg-[var(--list-hover-bg)]"
           {...attributes}
           {...listeners}
         >
@@ -334,7 +337,7 @@ function StaticList({
   return (
     <div className="w-[272px] min-w-[272px] shrink-0">
       <div className="flex max-h-[calc(100dvh-56px-56px-24px)] flex-col overflow-hidden rounded-sm border border-[var(--border)] bg-[var(--list-bg)] shadow-sm">
-        <div className="relative flex h-12 items-center gap-2 bg-[var(--list-bg)] px-4 font-medium">
+        <div className="relative flex h-12 items-center gap-2 bg-[var(--list-bg)] px-4 font-medium hover:bg-[var(--list-hover-bg)]">
           <div className="min-w-0 flex-1 pr-8">
             {listEdit.editingListId === String(list.id) ? (
               <Input
@@ -736,14 +739,25 @@ export default function BoardView({
         suppressHydrationWarning
       >
         {/* ページ内ヘッダ（sticky） */}
-        <div className="sticky top-0 z-10 mt-2 px-6 py-3 lg:px-8">
-          <span className="inline-block rounded px-3 py-1 text-xl font-semibold">
-            {boardTitle}
-          </span>
+        <div className="sticky top-[56px] z-30 mt-1 bg-[var(--board-bg)] px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--board-bg)] lg:px-8">
+          <div className="flex items-center justify-between">
+            <span className="inline-block rounded px-3 py-1 text-xl font-semibold">
+              {boardTitle}
+            </span>
+            <Button
+              asChild
+              className="rounded-sm bg-[var(--addlist-bg)] text-white hover:bg-[var(--button-hover-bg)]"
+            >
+              <Link href="/boards" aria-label="ボード一覧へ戻る">
+                <ArrowLeft className="mr-1 h-4 w-4" />
+                ボード一覧
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* リスト帯：横スクロール専用 */}
-        <div className="mt-2 overflow-x-auto overflow-y-hidden px-6 pb-6 lg:px-8">
+        <div className="mt-1 overflow-x-auto overflow-y-hidden px-6 pb-6 lg:px-8">
           <div className="flex h-full items-start gap-4">
             {lists.map((l) => (
               <StaticList
@@ -782,12 +796,22 @@ export default function BoardView({
   return (
     <div className="grid h-full grid-rows-[auto,1fr]">
       {/* ページ内ヘッダ（sticky） */}
-      <div className="sticky top-0 z-10 mt-1 px-6 py-3 lg:px-8">
-        <span className="inline-block rounded px-3 py-1 text-xl font-semibold">
-          {boardTitle}
-        </span>
+      <div className="sticky top-[56px] z-30 mt-1 bg-[var(--board-bg)] px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-[var(--board-bg)] lg:px-8">
+        <div className="flex items-center justify-between">
+          <span className="inline-block rounded px-3 py-1 text-xl font-semibold">
+            {boardTitle}
+          </span>
+          <Button
+            asChild
+            className="rounded-sm bg-[var(--addlist-bg)] text-white hover:bg-[var(--button-hover-bg)]"
+          >
+            <Link href="/boards" aria-label="ボード一覧へ戻る">
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              ボード一覧
+            </Link>
+          </Button>
+        </div>
       </div>
-
       <div className="mt-1 overflow-x-auto overflow-y-hidden px-6 pb-6 lg:px-8">
         <DndContext
           sensors={sensors}

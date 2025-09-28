@@ -29,22 +29,16 @@
   --listheader-bg: #172e38;
   --addlist-bg: #172e38;
 
+  --button-hover-bg: #0c4466;
+  --board-card-hover-bg: #e8fffb;
+  --addcard-hover-bg: #e1e7ed;
+  --list-hover-bg: #e1e7ed;
+  --ellipsis-hover-bg: #CFD7DF;
+
   --board-bg: #C9E2EF;
   --list-bg: #F6F8FB;
   --card-bg: #ffffff;
   --border: #CCD6E0;
-
-  /* --board-bg: #D0E3F0; */
-
-  /* --board-bg: #A8D8DF;
-  --list-bg: #F2F5F7;
-  --card-bg: #ffffff;
-  --border: #C8D1D9; */
-
-  /* --board-bg: #E6EBF1;
-  --list-bg: #F5F7FA;
-  --card-bg: #ffffff;
-  --border: #D4DCE5; */
 }
 
 .dark {

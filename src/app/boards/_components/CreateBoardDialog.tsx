@@ -59,9 +59,9 @@ export default function CreateBoardDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="w-[140px] min-w-[140px] shrink-0 items-center rounded-sm border bg-[var(--addlist-bg)] text-white hover:bg-white/20">
+        <Button className="shrink-0 items-center rounded-sm bg-[var(--addlist-bg)] text-white hover:bg-[var(--button-hover-bg)]">
           <Plus className="" size={16} />
-          新規ボード
+          新規ボード作成
         </Button>
       </DialogTrigger>
       <DialogContent>
