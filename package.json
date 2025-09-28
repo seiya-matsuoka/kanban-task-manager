@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "postinstall": "prisma generate",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
@@ -15,6 +16,7 @@
     "fix": "npm run lint:fix && npm run format",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
+    "prebuild": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev --name init",
     "prisma:migrate:deploy": "prisma migrate deploy",
