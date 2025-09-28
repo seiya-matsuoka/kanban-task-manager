@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { createBoard } from "@/app/actions/boards";
+import { Plus } from "lucide-react";
 
 function unwrapResult<T>(res: any): T {
   if (res?.ok === false) {
@@ -58,7 +59,10 @@ export default function CreateBoardDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>＋ 新規ボード</Button>
+        <Button className="w-[140px] min-w-[140px] shrink-0 items-center rounded-sm border bg-[var(--addlist-bg)] text-white hover:bg-white/20">
+          <Plus className="" size={16} />
+          新規ボード
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

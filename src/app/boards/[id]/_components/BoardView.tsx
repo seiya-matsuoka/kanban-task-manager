@@ -782,13 +782,13 @@ export default function BoardView({
   return (
     <div className="grid h-full grid-rows-[auto,1fr]">
       {/* ページ内ヘッダ（sticky） */}
-      <div className="sticky top-0 z-10 mt-2 px-6 py-3 lg:px-8">
+      <div className="sticky top-0 z-10 mt-1 px-6 py-3 lg:px-8">
         <span className="inline-block rounded px-3 py-1 text-xl font-semibold">
           {boardTitle}
         </span>
       </div>
 
-      <div className="mt-2 overflow-x-auto overflow-y-hidden px-6 pb-6 lg:px-8">
+      <div className="mt-1 overflow-x-auto overflow-y-hidden px-6 pb-6 lg:px-8">
         <DndContext
           sensors={sensors}
           collisionDetection={listAwareCollision}

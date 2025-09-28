@@ -34,6 +34,8 @@ import {
   reorderBoard,
 } from "@/app/actions/boards";
 
+const SHOW_POS = process.env.NEXT_PUBLIC_DEBUG_POS === "1";
+
 type BoardItem = {
   id: string;
   title: string;
@@ -57,10 +59,8 @@ export default function BoardsGrid({ boards }: { boards: BoardItem[] }) {
 
   if (!mounted) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="h-24 animate-pulse rounded-xl border" />
-        <div className="h-24 animate-pulse rounded-xl border" />
-        <div className="h-24 animate-pulse rounded-xl border" />
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4">
+        <div className="h-24 animate-pulse rounded-sm border border-white/20 bg-white/10" />
       </div>
     );
   }
@@ -77,13 +77,10 @@ export default function BoardsGrid({ boards }: { boards: BoardItem[] }) {
     const res = await updateBoardTitle({ boardId: id, title: t });
     if (res?.ok === false) {
       console.error("updateBoardTitle failed:", res.error);
-      router.refresh();
-    } else {
-      router.refresh();
     }
+    router.refresh();
   }
 
-  // DnD: ドロップで確定
   async function onDragEnd(e: DragEndEvent) {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
@@ -109,7 +106,6 @@ export default function BoardsGrid({ boards }: { boards: BoardItem[] }) {
     router.refresh();
   }
 
-  // 削除
   async function doDelete(id: string) {
     setBusyId(id);
     const res = await deleteBoard({ boardId: id });
@@ -119,7 +115,6 @@ export default function BoardsGrid({ boards }: { boards: BoardItem[] }) {
       console.error("deleteBoard failed:", res.error);
       router.refresh();
     } else {
-      // 削除はフルリロード
       if (typeof window !== "undefined") {
         window.location.reload();
       } else {
@@ -135,7 +130,7 @@ export default function BoardsGrid({ boards }: { boards: BoardItem[] }) {
           items={items.map((b) => b.id)}
           strategy={rectSortingStrategy}
         >
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4">
             {items.map((b) => (
               <BoardCard
                 key={b.id}
@@ -204,7 +199,7 @@ function BoardCard(props: {
 
   return (
     <div ref={setNodeRef} style={style}>
-      <Card className="transition-shadow hover:shadow-md">
+      <Card className="rounded-sm border border-[var(--border)] bg-[var(--card-bg)] shadow transition-shadow hover:shadow-md">
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           {/* 左：ドラッグハンドル */}
           <button
@@ -216,7 +211,7 @@ function BoardCard(props: {
             <GripVertical size={16} />
           </button>
 
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             {props.isEditing ? (
               <Input
                 autoFocus
@@ -232,7 +227,8 @@ function BoardCard(props: {
               <CardTitle className="flex items-center gap-2">
                 <Link
                   href={`/boards/${props.item.id}`}
-                  className="hover:underline"
+                  className="block max-w-full truncate hover:underline"
+                  title={props.item.title}
                 >
                   {props.item.title}
                 </Link>
@@ -262,10 +258,11 @@ function BoardCard(props: {
             </Button>
           </div>
         </CardHeader>
+
         <CardContent>
           <p className="text-xs text-muted-foreground">
-            pos: {props.item.position}・作成:{" "}
-            {new Date(props.item.createdAt).toLocaleString()}
+            {SHOW_POS ? <>pos: {props.item.position} ・ </> : null}
+            作成: {new Date(props.item.createdAt).toLocaleString()}
           </p>
         </CardContent>
       </Card>

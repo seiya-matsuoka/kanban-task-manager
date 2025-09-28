@@ -25,19 +25,25 @@ export default async function BoardsPage() {
   }));
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">ボード一覧</h2>
-        <CreateBoardDialog />
+    <div className="grid h-full grid-rows-[auto,1fr] bg-[var(--board-bg)]">
+      <div className="sticky top-0 z-10 mt-1 px-6 py-3 lg:px-8">
+        <div className="flex items-center justify-between">
+          <span className="inline-block rounded px-3 py-1 text-xl font-semibold">
+            ボード一覧
+          </span>
+          <CreateBoardDialog />
+        </div>
       </div>
 
-      <BoardsGrid boards={boards} />
-
-      {boards.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          まだボードがありません。右上の「＋新規ボード」から作成してください。
-        </p>
-      )}
+      <div className="mt-1 px-6 pb-6 lg:px-8">
+        <BoardsGrid boards={boards} />
+        {boards.length === 0 && (
+          <p className="mt-3 text-sm">
+            まだボードがありません。右上の「＋
+            新規ボード」から作成してください。
+          </p>
+        )}
+      </div>
     </div>
   );
 }
