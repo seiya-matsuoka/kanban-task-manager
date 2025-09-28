@@ -15,6 +15,7 @@ model Board {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   lists     List[]
+  labels    Label[]
 
   @@index([position])
 }
@@ -43,6 +44,8 @@ model Card {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   list      List     @relation(fields: [listId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  comments    Comment[]
+  cardLabels  CardLabel[] 
 
   @@index([listId])
   @@index([position])
@@ -55,6 +58,7 @@ model Label {
   name    String
   color   String
   board   Board  @relation(fields: [boardId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  cardLabels CardLabel[]  
 
   @@index([boardId])
 }
