@@ -15,7 +15,11 @@
     "fix": "npm run lint:fix && npm run format",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "db:seed": "prisma db seed"
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:dev": "prisma migrate dev --name init",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:seed": "prisma db seed",
+    "db:reset": "prisma migrate reset --force && prisma db seed"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"
