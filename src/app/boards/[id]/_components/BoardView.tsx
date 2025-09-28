@@ -157,7 +157,7 @@ function DroppableListBody({
 function CardView(props: { card: Card; listId: ID; edit: CardEditProps }) {
   const { card, edit } = props;
   return (
-    <div className="rounded-sm border border-slate-200 bg-white p-3 text-sm shadow-sm">
+    <div className="rounded-sm border border-[var(--border)] bg-[var(--card-bg)] p-3 text-sm shadow">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1 font-medium">
           {edit.isEditing ? (
@@ -231,9 +231,9 @@ function SortableList({
       style={style}
       className="w-[272px] min-w-[272px] shrink-0"
     >
-      <div className="flex max-h-[calc(100dvh-56px-56px-24px)] flex-col overflow-hidden rounded-sm border border-slate-300/80 bg-slate-200 shadow-sm">
+      <div className="flex max-h-[calc(100dvh-56px-56px-24px)] flex-col overflow-hidden rounded-sm border border-[var(--border)] bg-[var(--list-bg)] shadow-sm">
         <div
-          className="relative flex h-12 select-none items-center gap-2 bg-slate-200 px-4 font-medium"
+          className="relative flex h-12 select-none items-center gap-2 bg-[var(--list-bg)] px-4 font-medium"
           {...attributes}
           {...listeners}
         >
@@ -333,8 +333,8 @@ function StaticList({
 }) {
   return (
     <div className="w-[272px] min-w-[272px] shrink-0">
-      <div className="flex max-h-[calc(100dvh-56px-56px-24px)] flex-col overflow-hidden rounded-sm border border-slate-300/80 bg-slate-200 shadow-sm">
-        <div className="relative flex h-12 items-center gap-2 bg-slate-200 px-4 font-medium">
+      <div className="flex max-h-[calc(100dvh-56px-56px-24px)] flex-col overflow-hidden rounded-sm border border-[var(--border)] bg-[var(--list-bg)] shadow-sm">
+        <div className="relative flex h-12 items-center gap-2 bg-[var(--list-bg)] px-4 font-medium">
           <div className="min-w-0 flex-1 pr-8">
             {listEdit.editingListId === String(list.id) ? (
               <Input
@@ -732,12 +732,12 @@ export default function BoardView({
   if (!hydrated) {
     return (
       <div
-        className="grid h-full grid-rows-[auto,1fr] bg-[var(--board-bg)]"
+        className="grid h-full grid-rows-[auto,1fr]"
         suppressHydrationWarning
       >
         {/* ページ内ヘッダ（sticky） */}
-        <div className="sticky top-0 z-10 px-6 py-3 lg:px-8">
-          <span className="inline-block rounded-sm bg-white/20 px-3 py-1 text-lg font-semibold text-white">
+        <div className="sticky top-0 z-10 mt-2 px-6 py-3 lg:px-8">
+          <span className="inline-block rounded px-3 py-1 text-xl font-semibold">
             {boardTitle}
           </span>
         </div>
@@ -780,10 +780,10 @@ export default function BoardView({
 
   // ハイドレート後は DnD を有効化
   return (
-    <div className="grid h-full grid-rows-[auto,1fr] bg-[var(--board-bg)]">
+    <div className="grid h-full grid-rows-[auto,1fr]">
       {/* ページ内ヘッダ（sticky） */}
-      <div className="sticky top-0 z-10 px-6 py-3 lg:px-8">
-        <span className="inline-block rounded-sm bg-white/20 px-3 py-1 text-lg font-semibold text-white">
+      <div className="sticky top-0 z-10 mt-2 px-6 py-3 lg:px-8">
+        <span className="inline-block rounded px-3 py-1 text-xl font-semibold">
           {boardTitle}
         </span>
       </div>

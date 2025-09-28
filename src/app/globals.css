@@ -24,7 +24,27 @@
   --ring: 215 20.2% 65.1%;
   --radius: 0.75rem;
 
-  --board-bg: theme(colors.sky.700 / 0.9);
+
+  --header-bg: #172e38;
+  --listheader-bg: #172e38;
+  --addlist-bg: #172e38;
+
+  --board-bg: #C9E2EF;
+  --list-bg: #F6F8FB;
+  --card-bg: #ffffff;
+  --border: #CCD6E0;
+
+  /* --board-bg: #D0E3F0; */
+
+  /* --board-bg: #A8D8DF;
+  --list-bg: #F2F5F7;
+  --card-bg: #ffffff;
+  --border: #C8D1D9; */
+
+  /* --board-bg: #E6EBF1;
+  --list-bg: #F5F7FA;
+  --card-bg: #ffffff;
+  --border: #D4DCE5; */
 }
 
 .dark {

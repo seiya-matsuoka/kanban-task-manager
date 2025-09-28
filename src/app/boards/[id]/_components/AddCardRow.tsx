@@ -35,7 +35,7 @@ export default function AddCardRow({
   if (!open) {
     return (
       <button
-        className="mt-1 w-full rounded-sm px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-100"
+        className="mt-1 w-full rounded-sm px-3 py-2 text-left text-sm font-semibold text-slate-600 hover:bg-slate-100"
         onClick={() => setOpen(true)}
       >
         <Plus className="mr-2 inline" size={16} />
@@ -48,7 +48,7 @@ export default function AddCardRow({
     <div className="mt-1 w-full rounded-sm bg-white/90 p-2 shadow-sm">
       <Input
         autoFocus
-        placeholder="Card title"
+        placeholder="カードの内容"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => {
