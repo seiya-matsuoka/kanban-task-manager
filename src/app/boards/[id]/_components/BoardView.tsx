@@ -236,7 +236,7 @@ function SortableList({
     >
       <div className="flex max-h-[calc(100dvh-56px-56px-24px)] flex-col overflow-hidden rounded-sm border border-[var(--border)] bg-[var(--list-bg)] shadow-sm">
         <div
-          className="relative flex h-12 select-none items-center gap-2 bg-[var(--list-bg)] px-4 font-medium hover:bg-[var(--list-hover-bg)]"
+          className="relative flex h-12 touch-none select-none items-center gap-2 bg-[var(--list-bg)] px-4 font-medium hover:bg-[var(--list-hover-bg)]"
           {...attributes}
           {...listeners}
         >
@@ -317,7 +317,7 @@ function SortableCard({
       style={style}
       {...attributes}
       {...listeners}
-      className="cursor-grab select-none active:cursor-grabbing"
+      className="cursor-grab touch-none select-none active:cursor-grabbing"
     >
       <CardView card={card} listId={listId} edit={edit} />
     </div>
