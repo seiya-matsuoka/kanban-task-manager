@@ -5,6 +5,7 @@ import { createCard } from "@/lib/actions-bridge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AddCardRow({
   boardId,
@@ -16,6 +17,7 @@ export default function AddCardRow({
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
+  const { toast } = useToast();
 
   async function onSubmit() {
     const t = title.trim();
@@ -27,7 +29,11 @@ export default function AddCardRow({
       // 成功後はフルリロード
       window.location.reload();
     } catch (e) {
-      console.error("[AddCardRow] createCard failed:", e);
+      toast({
+        title: "カードの作成に失敗しました",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
       setBusy(false);
     }
   }

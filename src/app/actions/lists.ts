@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { QUOTA } from "@/lib/quota";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: unknown };
 const GAP = 1024;
@@ -30,6 +31,17 @@ export async function createList(
     select: { position: true },
   });
   const pos = parsed.data.position ?? (last?.position ?? 0) + GAP;
+
+  const _bid =
+    typeof parsed.data.boardId !== "undefined"
+      ? parsed.data.boardId
+      : (parsed as any)?.data?.boardId;
+  const _lists = await prisma.list.count({ where: { boardId: _bid } });
+  if (_lists >= QUOTA.MAX_LISTS_PER_BOARD) {
+    throw new Error(
+      `このボードのリスト上限(${QUOTA.MAX_LISTS_PER_BOARD})に達しています`,
+    );
+  }
 
   const list = await prisma.list.create({
     data: {

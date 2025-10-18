@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { QUOTA } from "@/lib/quota";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: unknown };
 const GAP = 1024;
@@ -36,6 +37,27 @@ export async function createCard(
     select: { position: true },
   });
   const pos = parsed.data.position ?? (last?.position ?? 0) + GAP;
+
+  let _bid: string | undefined =
+    typeof parsed.data.boardId !== "undefined"
+      ? parsed.data.boardId
+      : undefined;
+  if (!_bid) {
+    const _list = await prisma.list.findUnique({
+      where: { id: parsed.data.listId },
+      select: { boardId: true },
+    });
+    _bid = _list?.boardId;
+  }
+  if (!_bid) throw new Error("対象のボードが見つかりません");
+  const _cards = await prisma.card.count({
+    where: { list: { boardId: _bid } },
+  });
+  if (_cards >= QUOTA.MAX_CARDS_PER_BOARD) {
+    throw new Error(
+      `このボードのカード上限(${QUOTA.MAX_CARDS_PER_BOARD})に達しています`,
+    );
+  }
 
   const card = await prisma.card.create({
     data: {

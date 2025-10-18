@@ -4,6 +4,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
+import { QUOTA } from "@/lib/quota";
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: unknown };
 const GAP = 1024;
@@ -18,6 +19,10 @@ export async function createBoard(input: { title: string }) {
     // 既存最大の position を取得して +GAP
     const max = await prisma.board.aggregate({ _max: { position: true } });
     const position = (max._max.position ?? 0) + GAP;
+
+    const _boards = await prisma.board.count();
+    if (_boards >= QUOTA.MAX_BOARDS)
+      throw new Error(`ボードの上限(${QUOTA.MAX_BOARDS})に達しています`);
 
     const board = await prisma.board.create({
       data: { title, position },

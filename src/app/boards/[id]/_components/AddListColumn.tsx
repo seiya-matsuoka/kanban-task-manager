@@ -5,11 +5,13 @@ import { createList } from "@/lib/actions-bridge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AddListColumn({ boardId }: { boardId: string }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
+  const { toast } = useToast();
 
   async function onSubmit() {
     const t = title.trim();
@@ -21,7 +23,11 @@ export default function AddListColumn({ boardId }: { boardId: string }) {
       // 成功後はフルリロード
       window.location.reload();
     } catch (e) {
-      console.error("[AddListColumn] createList failed:", e);
+      toast({
+        title: "リストの作成に失敗しました",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
       setBusy(false);
     }
   }
