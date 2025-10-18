@@ -372,6 +372,7 @@ function StaticList({
         </div>
         <div className="max-h-[calc(100dvh-56px-56px-24px-48px-12px)] space-y-3 overflow-y-auto rounded-b-sm p-3">
           {children}
+          <BottomDropZone listId={String(list.id)} />
           <AddCardRow boardId={String(list.boardId)} listId={String(list.id)} />
         </div>
       </div>
