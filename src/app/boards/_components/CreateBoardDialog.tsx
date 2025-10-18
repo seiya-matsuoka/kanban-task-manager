@@ -28,7 +28,11 @@ function unwrapResult<T>(res: any): T {
   return (res?.value ?? res?.data ?? res) as T;
 }
 
-export default function CreateBoardDialog() {
+export default function CreateBoardDialog({
+  disabled = false,
+}: {
+  disabled?: boolean;
+}) {
   const router = useRouter();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -59,7 +63,10 @@ export default function CreateBoardDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="shrink-0 items-center rounded-sm bg-[var(--addlist-bg)] text-white hover:bg-[var(--button-hover-bg)]">
+        <Button
+          className="shrink-0 items-center rounded-sm bg-[var(--addlist-bg)] text-white hover:bg-[var(--button-hover-bg)]"
+          disabled={disabled}
+        >
           <Plus className="" size={16} />
           新規ボード作成
         </Button>

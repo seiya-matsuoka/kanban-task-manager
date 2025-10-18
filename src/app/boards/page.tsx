@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import BoardsGrid from "./_components/BoardsGrid";
 import CreateBoardDialog from "./_components/CreateBoardDialog";
+import { QUOTA } from "@/lib/quota";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,8 @@ export default async function BoardsPage() {
     createdAt: b.createdAt.toISOString(),
   }));
 
+  const canCreate = boards.length < QUOTA.MAX_BOARDS;
+
   return (
     <div className="grid h-full grid-rows-[auto,1fr] bg-[var(--board-bg)]">
       <div className="sticky top-0 z-10 mt-1 px-6 py-3 lg:px-8">
@@ -31,7 +34,18 @@ export default async function BoardsPage() {
           <span className="inline-block rounded px-3 py-1 text-xl font-semibold">
             ボード一覧
           </span>
-          <CreateBoardDialog />
+
+          <div className="ml-auto flex items-center gap-3">
+            {!canCreate && (
+              <p className="text-right text-xs text-amber-600">
+                ボードの上限（{QUOTA.MAX_BOARDS}
+                ）に達しています。
+                <br />
+                不要なボードを削除してから作成してください。
+              </p>
+            )}
+            <CreateBoardDialog disabled={!canCreate} />
+          </div>
         </div>
       </div>
 
