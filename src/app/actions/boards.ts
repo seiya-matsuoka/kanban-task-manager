@@ -1,6 +1,6 @@
 "use server";
 
-// import { z } from "zod";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
@@ -9,11 +9,15 @@ import { QUOTA } from "@/lib/quota";
 type Result<T> = { ok: true; data: T } | { ok: false; error: unknown };
 const GAP = 1024;
 
-// const createBoardSchema = z.object({ title: z.string().min(1).max(100) });
+const createBoardSchema = z.object({
+  title: z.string().trim().min(1).max(100),
+});
 
 export async function createBoard(input: { title: string }) {
   try {
-    const title = (input?.title ?? "").trim();
+    const parsed = createBoardSchema.safeParse(input);
+    if (!parsed.success) return { ok: false, error: parsed.error.format() };
+    const { title } = parsed.data;
     if (!title) throw new Error("タイトルを入力してください");
 
     // 既存最大の position を取得して +GAP

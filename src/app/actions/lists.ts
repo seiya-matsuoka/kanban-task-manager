@@ -10,7 +10,7 @@ const GAP = 1024;
 
 const createListSchema = z.object({
   boardId: z.string().min(1),
-  title: z.string().min(1).max(100),
+  title: z.string().trim().min(1).max(100),
   position: z.number().int().optional(),
 });
 

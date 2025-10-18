@@ -11,7 +11,7 @@ const GAP = 1024;
 const createCardSchema = z.object({
   boardId: z.string().min(1),
   listId: z.string().min(1),
-  title: z.string().min(1).max(200),
+  title: z.string().trim().min(1).max(200),
   position: z.number().int().optional(),
 });
 
