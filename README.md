@@ -99,27 +99,10 @@ src/
           AddCardRow.tsx      # カード追加
           EditControls.tsx    # 3点メニューの編集操作
           QuickCreate.tsx     # 追加操作
-    actions/                  # Server Actions
-      boards.ts
-      lists.ts
-      cards.ts
-  components/
-    ui/                       # shadcn/ui
-      button.tsx
-      card.tsx
-      dialog.tsx
-      input.tsx
-      textarea.tsx
-      toast.tsx
-      toaster.tsx
+    actions/*                 # Server Actions
+  components/ui/*             # shadcn/ui
   hooks/
     use-toast.ts
-  lib/
-    prisma.ts
-    positions.ts
-    actions-bridge.ts
-  stores/
-    kanban.ts
 ```
 
 ## 技術スタック
@@ -160,4 +143,4 @@ npm run dev
 
 ## セキュリティ / 注意
 
-- 認証認可の機能は実装していないため、共通の画面（データ）を誰でも編集可能。
+- 認証認可の機能は実装していないため、共通の画面（データ）を誰でも編集可能になっています。
