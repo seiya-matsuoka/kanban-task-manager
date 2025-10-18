@@ -3,8 +3,22 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://kanban-task-manager-seiya.vercel.app"),
   title: "Kanban Task Manager",
-  description: "Kanban built with Next.js",
+  description:
+    "ボード / リスト / カード で構成されたシンプルなカンバンボード。",
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Kanban Task Manager",
+    title: "Kanban Task Manager",
+    description:
+      "ボード / リスト / カード で構成されたシンプルなカンバンボード。",
+    images: [
+      { url: "/og.png", width: 1200, height: 630, alt: "Kanban Task Manager" },
+    ],
+  },
+  icons: { icon: "/favicon.ico" },
 };
 
 export default function RootLayout({
