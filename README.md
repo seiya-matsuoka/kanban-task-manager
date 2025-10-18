@@ -36,6 +36,16 @@
       <img src="docs/screenshot_2.png" alt="">
     </td>
   </tr>
+  <tr>
+    <td>
+      <img src="docs/screenshot_3.png" alt="">
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <img src="docs/screenshot_4.png" alt="">
+    </td>
+  </tr>
 </table>
 
 ## 特徴
